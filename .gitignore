@@ -6,6 +6,9 @@ logs/
 # Databases (too large for git)
 resources/databases/
 
+# Legacy data from original analysis (contains PHI and large RData files)
+data/legacy/
+
 # Sample data (contains PHI)
 config/samples.tsv
 config/drug_exposure.tsv
