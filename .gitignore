@@ -12,6 +12,7 @@ data/legacy/
 # Sample data (contains PHI)
 config/samples.tsv
 config/drug_exposure.tsv
+samples/
 *.fastq.gz
 *.fq.gz
 *.bam

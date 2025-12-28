@@ -18,7 +18,9 @@ library(maaslin3)
 library(ANCOMBC)
 library(phyloseq)
 
+# Ensure dplyr functions aren't masked by MASS (loaded by ALDEx2)
 select <- dplyr::select
+filter <- dplyr::filter
 
 # Set paths
 project_dir <- "/home/david/projects/abx_metagenomic_correlations"
@@ -45,7 +47,7 @@ top_antibiotics <- c("Pip/Tazo", "TMP/SMX", "Vancomycin", "Cefepime",
 # Filter drug table to systemic routes
 systemic_routes <- c("IV", "PO", "IM")
 DrugTable_systemic <- DrugTable %>%
-  filter(Route %in% systemic_routes) %>%
+  dplyr::filter(Route %in% systemic_routes) %>%
   mutate(Date = as.Date(Date))
 
 # Function to calculate exposure for a specific antibiotic
@@ -54,7 +56,7 @@ calc_abx_exposure <- function(mrn, sample_date, drug_name, drug_data, window = 7
   end_date <- sample_date - 1
 
   exposed <- drug_data %>%
-    filter(MRN == mrn,
+    dplyr::filter(MRN == mrn,
            Drug == drug_name,
            Date >= start_date,
            Date <= end_date) %>%
@@ -110,16 +112,30 @@ sample_metadata$total_abx_count <- rowSums(
 cat("\nPreparing species data...\n")
 
 # Use high-confidence samples
-sample_hc <- sample_metadata %>% filter(high_confidence)
+sample_hc <- sample_metadata %>% dplyr::filter(high_confidence)
 hc_samples <- sample_hc$sample_id
 
 species_hc <- species_matrix[intersect(hc_samples, rownames(species_matrix)), ]
 
-# Filter to species present in at least 5% of samples
-prevalence <- colSums(species_hc > 0) / nrow(species_hc)
-species_filtered <- species_hc[, prevalence >= 0.05]
+# Calculate relative abundance for filtering
+species_rel <- species_hc / rowSums(species_hc)
 
-cat("Species after 5% prevalence filter:", ncol(species_filtered), "\n")
+# Filter criteria (more stringent to reduce multiple testing burden)
+min_prevalence <- 0.10  # Present in at least 10% of samples
+min_mean_abundance <- 0.0001  # Mean relative abundance > 0.01%
+
+prevalence <- colSums(species_hc > 0) / nrow(species_hc)
+mean_abundance <- colMeans(species_rel)
+
+# Apply both filters
+keep_species <- (prevalence >= min_prevalence) & (mean_abundance >= min_mean_abundance)
+species_filtered <- species_hc[, keep_species]
+
+cat("Species filtering:\n")
+cat("  Starting species:", ncol(species_hc), "\n")
+cat("  After 10% prevalence filter:", sum(prevalence >= min_prevalence), "\n")
+cat("  After 0.01% abundance filter:", sum(mean_abundance >= min_mean_abundance), "\n")
+cat("  After BOTH filters:", ncol(species_filtered), "\n")
 cat("Samples:", nrow(species_filtered), "\n")
 
 # Prepare for ALDEx2 (needs samples as columns)
@@ -198,8 +214,8 @@ for (abx in top_antibiotics) {
 
   # Build covariate dataframe
   covariates_df <- meta_aligned %>%
-    select(sample_id, all_of(target_col), all_of(other_abx_cols), patient_group) %>%
-    mutate(across(all_of(c(target_col, other_abx_cols)), as.numeric))
+    dplyr::select(sample_id, all_of(target_col), all_of(other_abx_cols), patient_group) %>%
+    dplyr::mutate(dplyr::across(all_of(c(target_col, other_abx_cols)), as.numeric))
 
   rownames(covariates_df) <- covariates_df$sample_id
 
@@ -271,7 +287,7 @@ for (abx in top_antibiotics) {
 
     # Prepare metadata
     maaslin_meta <- covariates_df %>%
-      select(-sample_id) %>%
+      dplyr::select(-sample_id) %>%
       mutate(patient_group = as.factor(patient_group))
 
     # Define fixed effects: target antibiotic + other antibiotics + patient group
@@ -296,7 +312,7 @@ for (abx in top_antibiotics) {
     # Extract results for target antibiotic
     if (!is.null(maaslin_result$fit_data_abundance)) {
       maaslin_df <- maaslin_result$fit_data_abundance %>%
-        filter(grepl(target_col, metadata, fixed = TRUE)) %>%
+        dplyr::filter(grepl(target_col, metadata, fixed = TRUE)) %>%
         mutate(antibiotic = abx, method = "MaAsLin3") %>%
         rename(species = feature, pval_BH = qval) %>%
         arrange(pval_BH)
@@ -426,8 +442,8 @@ get_significant <- function(df, method_name, pval_col = "pval_BH",
   if (is.null(df) || nrow(df) == 0) return(NULL)
 
   sig <- df %>%
-    filter(.data[[pval_col]] < threshold) %>%
-    select(antibiotic, species, any_of(c(effect_col, "lfc", "estimate", "coef")))
+    dplyr::filter(.data[[pval_col]] < threshold) %>%
+    dplyr::select(antibiotic, species, any_of(c(effect_col, "lfc", "estimate", "coef")))
 
   if (nrow(sig) > 0) {
     sig$method <- method_name
@@ -447,9 +463,9 @@ sig_ancombc <- get_significant(combined_ancombc, "ANCOMBC2", "pval_BH", "lfc")
 
 # Combine
 all_significant <- bind_rows(
-  sig_aldex %>% select(antibiotic, species, effect, method),
-  sig_maaslin %>% select(antibiotic, species, effect, method),
-  sig_ancombc %>% select(antibiotic, species, effect, method)
+  sig_aldex %>% dplyr::select(antibiotic, species, effect, method),
+  sig_maaslin %>% dplyr::select(antibiotic, species, effect, method),
+  sig_ancombc %>% dplyr::select(antibiotic, species, effect, method)
 )
 
 if (nrow(all_significant) > 0) {
@@ -467,7 +483,7 @@ if (nrow(all_significant) > 0) {
 
   # Filter to associations found by 2+ methods
   robust_associations <- concordance %>%
-    filter(n_methods >= 2)
+    dplyr::filter(n_methods >= 2)
 
   cat("Associations found by 2+ methods:", nrow(robust_associations), "\n")
   cat("Associations found by all 3 methods:", sum(concordance$n_methods == 3), "\n\n")
@@ -518,7 +534,7 @@ write_csv(summary_by_abx, file.path(indiv_dir, "summary_by_antibiotic.csv"))
 cat("\n=== Enterococcus Results by Antibiotic (All Methods) ===\n\n")
 
 enterococcus_all <- all_significant %>%
-  filter(grepl("Enterococcus", species, ignore.case = TRUE))
+  dplyr::filter(grepl("Enterococcus", species, ignore.case = TRUE))
 
 if (nrow(enterococcus_all) > 0) {
   enterococcus_summary <- enterococcus_all %>%
