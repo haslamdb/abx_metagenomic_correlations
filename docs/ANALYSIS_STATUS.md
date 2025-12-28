@@ -14,16 +14,24 @@ Reanalysis of legacy antibiotic-microbiome data (2019) using modern compositiona
 
 ## Current Phase
 
-**Phase 5: Individual Antibiotic Effects** - In Progress
+**Phase 6: Genus-Level Analysis** - In Progress
 
-Running species-level differential abundance analysis for 10 antibiotics using ALDEx2, MaAsLin3, and ANCOM-BC2 with covariate adjustment.
+Running genus-level differential abundance analysis as complement to species-level results.
 
 ---
 
 ## Completed Work
 
+### Phase 0: Data Pipeline Rebuild (NEW)
+- [x] Transfer original Bracken output files from lambda-quad storage
+- [x] Build count matrices from raw Bracken files (excluding contaminants)
+- [x] Compute antibiotic exposure from hospital Drugs.csv records
+- [x] Link samples to exposure via MRN and sample dates
+- **Output:** `data/bracken_count_matrices.RData`, `data/sample_metadata_with_abx.csv`
+
 ### Phase 1: Data Preparation
-- [x] Load legacy RData, classify antibiotics by spectrum
+- [x] Load Bracken count matrices and antibiotic exposure
+- [x] Classify antibiotics by spectrum
 - [x] Create binary exposure variables (7d, 14d windows)
 - [x] Calculate functional taxonomic groups
 - [x] Compute alpha diversity metrics
@@ -48,8 +56,8 @@ Running species-level differential abundance analysis for 10 antibiotics using A
 ## Pending Work (TODO)
 
 ### High Priority
-- [ ] Complete 05_individual_antibiotic_effects.R run (currently running)
-- [ ] Review multi-method concordance results
+- [ ] Complete 06_genus_level_analysis.R run
+- [ ] Review multi-method concordance results (species + genus levels)
 - [ ] Validate Enterococcus findings (unexpected Pip/Tazo association)
 
 ### Medium Priority
@@ -68,8 +76,10 @@ Running species-level differential abundance analysis for 10 antibiotics using A
 
 | Output | Location | Date |
 |--------|----------|------|
+| Bracken count matrices | `data/bracken_count_matrices.RData` | Dec 2025 |
+| Sample metadata + abx | `data/sample_metadata_with_abx.csv` | Dec 2025 |
 | Diversity results | `results/new_analysis_legacy_data/diversity/` | Dec 2025 |
-| Individual abx effects | `results/new_analysis_legacy_data/individual_antibiotics_v2_with_covariates/` | In progress |
+| Individual abx effects | `results/new_analysis_legacy_data/individual_antibiotics_v2_with_covariates/` | Dec 2025 |
 | Network graphs | `results/new_analysis_legacy_data/network_graphs/` | Dec 2025 |
 
 ---

@@ -6,7 +6,7 @@
 
 # Configuration
 KRAKEN2_DB="/shardpool/reference_data/Kraken2DB"
-THREADS=96
+THREADS=24
 PROJECT_DIR="/home/david/projects/abx_metagenomic_correlations"
 OUTPUT_DIR="/fastpool/analysis/mss_pipeline/kraken2"
 SAMPLE_FILE="${PROJECT_DIR}/samples/bsi_abx_samples_complete.csv"

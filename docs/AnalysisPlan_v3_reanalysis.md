@@ -1,10 +1,16 @@
 # Antibiotic-Microbiome Correlations: Reanalysis Plan (v3)
 
+> **Note (December 2025):** This analysis plan has been superseded by an updated data pipeline. We now build count matrices directly from original Bracken output files rather than using the pre-processed RData. See `docs/NEW_ANALYSIS_LEGACY_DATA.md` for the current implementation details.
+
 ## Overview
 
 This plan focuses on re-analyzing existing Kraken/Bracken data using improved statistical methods. The previous analysis used simple Pearson correlations between rate-of-change metrics, which did not reveal expected biological patterns (e.g., anaerobe depletion with metronidazole).
 
-**Data Source**: `data/legacy/AbxEffectData20191014` (RData file)
+**Data Sources (Updated):**
+- **Taxonomic profiles:** `data/kraken2_legacy/` (original Bracken output files)
+- **Sample metadata:** `data/legacy/SampleListFormatted.csv`
+- **Antibiotic exposure:** `data/legacy/Drugs.csv`
+- **Legacy RData:** `data/legacy/AbxEffectData20191014` (for reference/comparison)
 
 **Scope**: Microbiome composition and antibiotic-species correlations only (no ARG or functional pathway analysis in this phase)
 

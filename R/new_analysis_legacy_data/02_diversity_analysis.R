@@ -15,11 +15,28 @@ project_dir <- "/home/david/projects/abx_metagenomic_correlations"
 results_dir <- file.path(project_dir, "results/new_analysis_legacy_data")
 figures_dir <- file.path(results_dir, "figures")
 
-# Load prepared data
-load(file.path(project_dir, "data/prepared_data.RData"))
+# Load data
+load(file.path(project_dir, "data/bracken_count_matrices.RData"))  # Raw Bracken counts
+load(file.path(project_dir, "data/prepared_data.RData"))  # Antibiotic metadata
 
 sample_metadata <- prepared_data$sample_metadata
-species_matrix <- prepared_data$species_matrix
+species_matrix <- bracken_data$species_matrix  # Use raw Bracken counts
+
+# Filter to overlapping samples
+common_samples <- intersect(sample_metadata$sample_id, rownames(species_matrix))
+sample_metadata <- sample_metadata %>% filter(sample_id %in% common_samples)
+species_matrix <- species_matrix[common_samples, ]
+
+cat("Using raw Bracken species counts:\n")
+cat("  Samples:", nrow(species_matrix), "\n")
+cat("  Species:", ncol(species_matrix), "\n\n")
+
+# Recalculate diversity metrics on raw Bracken data
+cat("Recalculating diversity metrics...\n")
+sample_metadata$shannon <- vegan::diversity(species_matrix, index = "shannon")
+sample_metadata$richness <- rowSums(species_matrix > 0)
+sample_metadata$simpson <- vegan::diversity(species_matrix, index = "simpson")
+
 high_confidence_groups <- prepared_data$high_confidence_groups
 
 # =============================================================================

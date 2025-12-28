@@ -15,14 +15,29 @@ project_dir <- "/home/david/projects/abx_metagenomic_correlations"
 results_dir <- file.path(project_dir, "results/new_analysis_legacy_data")
 figures_dir <- file.path(results_dir, "figures")
 
-# Load prepared data
-load(file.path(project_dir, "data/prepared_data.RData"))
+# Load data
+load(file.path(project_dir, "data/bracken_count_matrices.RData"))  # Raw Bracken counts
+load(file.path(project_dir, "data/prepared_data.RData"))  # Antibiotic metadata + paired samples
 
 sample_metadata <- prepared_data$sample_metadata
-species_matrix <- prepared_data$species_matrix
-genus_matrix <- prepared_data$genus_matrix
+species_matrix <- bracken_data$species_matrix  # Use raw Bracken counts
+genus_matrix <- bracken_data$genus_matrix      # Use raw Bracken counts
 paired_samples <- prepared_data$paired_samples
 high_confidence_groups <- prepared_data$high_confidence_groups
+
+# Filter to overlapping samples
+common_samples <- intersect(sample_metadata$sample_id, rownames(species_matrix))
+sample_metadata <- sample_metadata %>% filter(sample_id %in% common_samples)
+species_matrix <- species_matrix[common_samples, ]
+genus_matrix <- genus_matrix[intersect(common_samples, rownames(genus_matrix)), ]
+
+# Recalculate diversity metrics on raw Bracken data
+sample_metadata$shannon <- vegan::diversity(species_matrix, index = "shannon")
+sample_metadata$richness <- rowSums(species_matrix > 0)
+
+cat("Using raw Bracken counts:\n")
+cat("  Species:", nrow(species_matrix), "samples x", ncol(species_matrix), "species\n")
+cat("  Genus:", nrow(genus_matrix), "samples x", ncol(genus_matrix), "genera\n\n")
 
 # =============================================================================
 # 1. Calculate Paired Sample Metrics

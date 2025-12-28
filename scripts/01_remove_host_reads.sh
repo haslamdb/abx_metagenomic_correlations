@@ -8,7 +8,7 @@
 BOWTIE2="/home/david/environments/bowtie2/bin/bowtie2"
 SAMTOOLS="/home/david/environments/bowtie2/bin/samtools"
 BT2_INDEX="/bulkpool/reference_data/hostBT2/host_human_mouse"
-THREADS=96
+THREADS=24
 OUTPUT_DIR="/fastpool/analysis/mss_pipeline/nonhost_reads"
 PROJECT_DIR="/home/david/projects/abx_metagenomic_correlations"
 SAMPLE_FILE="${PROJECT_DIR}/samples/bsi_abx_samples_complete.csv"

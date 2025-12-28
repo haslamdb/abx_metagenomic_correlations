@@ -28,12 +28,25 @@ library(ALDEx2)
 project_dir <- "/home/david/projects/abx_metagenomic_correlations"
 results_dir <- file.path(project_dir, "results/new_analysis_legacy_data")
 
-# Load prepared data
-load(file.path(project_dir, "data/prepared_data.RData"))
+# Load data
+load(file.path(project_dir, "data/bracken_count_matrices.RData"))  # Raw Bracken counts
+load(file.path(project_dir, "data/prepared_data.RData"))  # Antibiotic metadata
 
 sample_metadata <- prepared_data$sample_metadata
-species_matrix <- prepared_data$species_matrix
-genus_matrix <- prepared_data$genus_matrix
+species_matrix <- bracken_data$species_matrix  # Use raw Bracken counts
+genus_matrix <- bracken_data$genus_matrix      # Use raw Bracken counts
+
+# Filter to overlapping samples
+common_samples <- intersect(sample_metadata$sample_id, rownames(species_matrix))
+common_samples_genus <- intersect(sample_metadata$sample_id, rownames(genus_matrix))
+sample_metadata <- sample_metadata %>% filter(sample_id %in% common_samples)
+species_matrix <- species_matrix[common_samples, ]
+genus_matrix <- genus_matrix[common_samples_genus[common_samples_genus %in% common_samples], ]
+
+cat("Using raw Bracken counts:\n")
+cat("  Species:", nrow(species_matrix), "samples x", ncol(species_matrix), "species\n")
+cat("  Genus:", nrow(genus_matrix), "samples x", ncol(genus_matrix), "genera\n\n")
+
 high_confidence_groups <- prepared_data$high_confidence_groups
 
 # =============================================================================

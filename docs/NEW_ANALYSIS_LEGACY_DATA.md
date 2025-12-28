@@ -1,7 +1,12 @@
 # Reanalysis of Legacy Antibiotic-Microbiome Data
 
 **Date:** December 2025 (last updated: 2025-12-28)
-**Data Source:** `data/legacy/AbxEffectData20191014` (RData from 2019 analysis)
+**Data Sources:**
+- **Taxonomic profiles:** Original Kraken2/Bracken output files (`data/kraken2_legacy/`)
+- **Sample metadata:** `data/legacy/SampleListFormatted.csv`
+- **Antibiotic exposure:** `data/legacy/Drugs.csv`
+- **Sample list:** `data/legacy/BSI_Abx_Samples.csv`
+
 **Scripts:** `R/new_analysis_legacy_data/`
 **Results:** `results/new_analysis_legacy_data/`
 
@@ -9,12 +14,27 @@
 
 ## Overview
 
-This analysis re-examines the relationship between antibiotic exposure and gut microbiome composition using improved statistical methods. The original 2019 analysis used simple Pearson correlations between rate-of-change metrics, which failed to reveal expected biological patterns. This reanalysis applies:
+This analysis re-examines the relationship between antibiotic exposure and gut microbiome composition using improved statistical methods. The original 2019 analysis used simple Pearson correlations between rate-of-change metrics, which failed to reveal expected biological patterns.
+
+### Key Changes from Previous Approach
+
+**Data Pipeline Update (December 2025):**
+- **Before:** Used pre-processed RData file (`AbxEffectData20191014`) with rarefied count matrices
+- **Now:** Rebuilt count matrices directly from original Bracken output files, linked to antibiotic exposure from hospital records
+
+This provides:
+- Raw counts (not rarefied) for modern compositional methods
+- Direct linkage to antibiotic exposure data via MRN and sample dates
+- Transparent pipeline from raw data to analysis
+- Exclusion of contaminants (Homo sapiens, Salinibacter ruber) at source
+
+### Statistical Methods Applied
 
 - Mixed-effects models to account for repeated patient samples
-- Compositional-aware differential abundance testing (ALDEx2)
+- Compositional-aware differential abundance testing (ALDEx2, MaAsLin3, ANCOM-BC2)
 - Proper antibiotic spectrum classification
 - Paired sample analysis for within-patient comparisons
+- Multi-method concordance for robust associations
 
 ---
 
@@ -48,10 +68,52 @@ This analysis re-examines the relationship between antibiotic exposure and gut m
 
 ## Analysis Pipeline
 
+### Script 0: Build Count Matrices from Bracken
+**`00_build_count_matrices_from_bracken.R`**
+
+Builds genus and species count matrices directly from raw Bracken output files.
+
+**Input:**
+- `data/kraken2_legacy/genus/*_genus_abundance.txt` - Bracken genus-level abundances
+- `data/kraken2_legacy/species/*_species_abundance.txt` - Bracken species-level abundances
+- `data/legacy/BSI_Abx_Samples.csv` - List of samples to include (BSI/Abx study samples)
+
+**Processing:**
+- Reads raw Bracken output files (uses `new_est_reads` as counts)
+- Filters to only samples in BSI_Abx_Samples.csv
+- Excludes contaminants: Homo sapiens, Salinibacter ruber
+- Aggregates counts by sample-taxon pairs
+
+**Output:** `data/bracken_count_matrices.RData`
+- `genus_matrix` - samples × genera count matrix
+- `species_matrix` - samples × species count matrix
+
+---
+
+### Script 0b: Compute Antibiotic Exposure (Python)
+**`scripts/compute_abx_exposure.py`**
+
+Fast computation of antibiotic exposure windows using pandas (much faster than R for large drug tables).
+
+**Input:**
+- `data/legacy/SampleListFormatted.csv` - Sample metadata with dates
+- `data/legacy/Drugs.csv` - Hospital antibiotic administration records
+- `data/genus_counts_raw.csv` - Sample names from Bracken data
+
+**Processing:**
+- Links samples to patients via MRN
+- Computes 7-day and 14-day exposure windows before each sample
+- Calculates exposure for spectrum categories (anti-anaerobic, broad-spectrum, etc.)
+- Counts days of exposure for each individual antibiotic
+
+**Output:** `data/sample_metadata_with_abx.csv`
+
+---
+
 ### Script 1: Data Preparation
 **`01_load_and_prepare_data.R`**
 
-- Loads legacy RData file
+- Loads Bracken count matrices and antibiotic exposure data
 - Classifies antibiotics by spectrum:
   - Anti-anaerobic: Metronidazole, Pip/Tazo, Meropenem, Clindamycin, etc.
   - Anti-gram-positive: Vancomycin, Daptomycin, Linezolid
@@ -444,16 +506,24 @@ To rerun the analysis:
 ```bash
 cd /home/david/projects/abx_metagenomic_correlations
 
-# Activate R environment
-conda activate r-env
+# 1. Transfer Kraken/Bracken files from lambda-quad (if not already present)
+bash scripts/transfer_legacy_kraken.sh
 
-# Run scripts in order
+# 2. Build count matrices from raw Bracken output
+conda activate r-env
+Rscript R/new_analysis_legacy_data/00_build_count_matrices_from_bracken.R
+
+# 3. Compute antibiotic exposure (Python - faster than R)
+python scripts/compute_abx_exposure.py
+
+# 4. Run analysis scripts in order
 Rscript R/new_analysis_legacy_data/01_load_and_prepare_data.R
 Rscript R/new_analysis_legacy_data/02_diversity_analysis.R
 Rscript R/new_analysis_legacy_data/02b_diversity_individual_antibiotics.R
 Rscript R/new_analysis_legacy_data/03_differential_abundance.R
 Rscript R/new_analysis_legacy_data/04_paired_sample_analysis.R
 Rscript R/new_analysis_legacy_data/05_individual_antibiotic_effects.R
+Rscript R/new_analysis_legacy_data/06_genus_level_analysis.R  # New: genus-level analysis
 Rscript R/new_analysis_legacy_data/06_network_visualization.R
 ```
 
@@ -478,13 +548,33 @@ All packages are available in the `r-env` conda environment.
 ## Files
 
 ```
+scripts/
+├── transfer_legacy_kraken.sh          # Transfer Bracken files from lambda-quad
+└── compute_abx_exposure.py            # Compute antibiotic exposure (Python)
+
+data/
+├── kraken2_legacy/                    # Raw Bracken output files
+│   ├── genus/*_genus_abundance.txt
+│   └── species/*_species_abundance.txt
+├── legacy/                            # Original study files
+│   ├── BSI_Abx_Samples.csv            # Sample list for this study
+│   ├── SampleListFormatted.csv        # Sample metadata with dates
+│   └── Drugs.csv                      # Hospital antibiotic records
+├── bracken_count_matrices.RData       # Built from raw Bracken (script 00)
+├── sample_metadata_with_abx.csv       # Sample metadata with abx exposure
+└── prepared_data.RData                # Final prepared data for analysis
+
 R/new_analysis_legacy_data/
+├── 00_build_count_matrices_from_bracken.R  # Build matrices from raw Bracken
 ├── 01_load_and_prepare_data.R
+├── 01_rebuild_sample_metadata.R       # Alternative: rebuild metadata in R
 ├── 02_diversity_analysis.R
 ├── 02b_diversity_individual_antibiotics.R
 ├── 03_differential_abundance.R
 ├── 04_paired_sample_analysis.R
 ├── 05_individual_antibiotic_effects.R
+├── 05b_maaslin3_patch.R               # MaAsLin3 compatibility patch
+├── 06_genus_level_analysis.R          # Genus-level differential abundance
 └── 06_network_visualization.R
 
 results/new_analysis_legacy_data/
@@ -626,7 +716,19 @@ Current models adjust for patient group and concurrent antibiotics. Additional c
 
 ## Changelog
 
-### 2025-12-28
+### 2025-12-28 (Data Pipeline Rebuild)
+
+**Major data pipeline overhaul:**
+- Rebuilt analysis pipeline to use original Kraken2/Bracken output files instead of pre-processed RData
+- Added `scripts/transfer_legacy_kraken.sh` to transfer Bracken files from lambda-quad storage
+- Added `R/new_analysis_legacy_data/00_build_count_matrices_from_bracken.R` to build count matrices from raw Bracken output
+- Added `scripts/compute_abx_exposure.py` for fast antibiotic exposure computation (links samples to Drugs.csv via MRN)
+- Contaminants (Homo sapiens, Salinibacter ruber) now excluded at matrix build time
+
+**New analysis scripts:**
+- Added `06_genus_level_analysis.R` for genus-level differential abundance analysis
+- Added `05b_maaslin3_patch.R` for MaAsLin3 compatibility fixes
+- Added `01_rebuild_sample_metadata.R` as alternative R-based metadata rebuilder
 
 **Sample inclusion update:**
 - Added SB (Short Bowel) Stool samples to high-confidence subset

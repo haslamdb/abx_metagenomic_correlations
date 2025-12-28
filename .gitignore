@@ -60,3 +60,6 @@ Thumbs.db
 
 # Prepared data (derived from legacy data, may contain PHI)
 data/prepared_data.RData
+
+# All data files (large files, may contain PHI)
+data/

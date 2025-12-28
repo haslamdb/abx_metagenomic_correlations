@@ -27,70 +27,52 @@ diversity_dir <- file.path(results_dir, "diversity")
 
 dir.create(diversity_dir, showWarnings = FALSE, recursive = TRUE)
 
-# Load prepared data
-load(file.path(project_dir, "data/prepared_data.RData"))
-load(file.path(project_dir, "data/legacy/AbxEffectData20191014"))
+# Load data
+load(file.path(project_dir, "data/bracken_count_matrices.RData"))  # Raw Bracken counts
+load(file.path(project_dir, "data/prepared_data.RData"))  # Antibiotic metadata
 
 sample_metadata <- prepared_data$sample_metadata
-species_matrix <- prepared_data$species_matrix
+species_matrix <- bracken_data$species_matrix  # Use raw Bracken counts
+
+# Filter to overlapping samples
+common_samples <- intersect(sample_metadata$sample_id, rownames(species_matrix))
+sample_metadata <- sample_metadata %>% filter(sample_id %in% common_samples)
+species_matrix <- species_matrix[common_samples, ]
+
+cat("Using raw Bracken species counts:\n")
+cat("  Samples:", nrow(species_matrix), "\n")
+cat("  Species:", ncol(species_matrix), "\n\n")
+
+# Recalculate diversity metrics on raw Bracken data
+cat("Recalculating diversity metrics...\n")
+sample_metadata$shannon <- vegan::diversity(species_matrix, index = "shannon")
+sample_metadata$richness <- rowSums(species_matrix > 0)
 
 # =============================================================================
-# 1. Calculate Individual Antibiotic Exposures (same as script 05)
+# 1. Use pre-computed antibiotic exposures from prepared_data
 # =============================================================================
 
-cat("=== Calculating Individual Antibiotic Exposures ===\n\n")
+cat("=== Using Pre-computed Antibiotic Exposures ===\n\n")
 
-top_antibiotics <- c("Pip/Tazo", "TMP/SMX", "Vancomycin", "Cefepime",
+# Use antibiotics available in prepared_data
+top_antibiotics <- c("Pip_Tazo", "TMP_SMX", "Vancomycin", "Cefepime",
                      "Meropenem", "Ciprofloxacin", "Metronidazole",
-                     "Azithromycin", "Cefazolin", "Ceftriaxone")
+                     "Ceftriaxone", "Clindamycin")
 
-# Filter drug table to systemic routes
-systemic_routes <- c("IV", "PO", "IM")
-DrugTable_systemic <- DrugTable %>%
-  filter(Route %in% systemic_routes) %>%
-  mutate(Date = as.Date(Date))
+abx_cols <- paste0(top_antibiotics, "_7d")
 
-# Function to calculate exposure
-calc_abx_exposure <- function(mrn, sample_date, drug_name, drug_data, window = 7) {
-  start_date <- sample_date - window
-  end_date <- sample_date - 1
-
-  exposed <- drug_data %>%
-    filter(MRN == mrn,
-           Drug == drug_name,
-           Date >= start_date,
-           Date <= end_date) %>%
-    nrow() > 0
-
-  return(exposed)
+# Check exposures
+cat("Antibiotic exposures:\n")
+for (col in abx_cols) {
+  n_exp <- sum(sample_metadata[[col]] > 0, na.rm = TRUE)
+  cat(sprintf("  %s: %d exposed\n", col, n_exp))
 }
-
-# Calculate exposure for each antibiotic
-for (abx in top_antibiotics) {
-  col_name <- paste0(gsub("/", "_", gsub("-", "_", abx)), "_7d")
-  cat("  Calculating", abx, "exposure...\n")
-
-  sample_metadata[[col_name]] <- sapply(1:nrow(sample_metadata), function(i) {
-    calc_abx_exposure(
-      sample_metadata$MRN[i],
-      sample_metadata$SampleDate[i],
-      abx,
-      DrugTable_systemic
-    )
-  })
-}
-
-# Create clean column names mapping
-abx_cols <- sapply(top_antibiotics, function(abx) {
-  paste0(gsub("/", "_", gsub("-", "_", abx)), "_7d")
-})
-names(abx_cols) <- top_antibiotics
 
 # Print exposure summary
 cat("\n=== Antibiotic Exposure Summary ===\n\n")
 exposure_summary <- data.frame(
   Antibiotic = top_antibiotics,
-  Exposed = sapply(top_antibiotics, function(abx) sum(sample_metadata[[abx_cols[abx]]])),
+  Exposed = sapply(abx_cols, function(col) sum(sample_metadata[[col]] > 0, na.rm = TRUE)),
   Total = nrow(sample_metadata)
 ) %>%
   mutate(Pct = round(100 * Exposed / Total, 1))
