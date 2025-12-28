@@ -291,10 +291,11 @@ for (abx in top_antibiotics) {
     # MaAsLin3 expects samples as rows, features as columns
     maaslin_input <- as.data.frame(t(species_counts))
 
-    # Prepare metadata
+    # Prepare metadata (must have rownames matching sample IDs)
     maaslin_meta <- covariates_df %>%
       dplyr::select(-sample_id) %>%
       mutate(patient_group = as.factor(patient_group))
+    rownames(maaslin_meta) <- covariates_df$sample_id
 
     # Define fixed effects: target antibiotic + other antibiotics + patient group
     fixed_effects <- c(target_col, other_abx_cols, "patient_group")
