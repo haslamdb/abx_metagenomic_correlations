@@ -545,6 +545,51 @@ results/new_analysis_legacy_data/
 
 ---
 
+## Future Analyses (TODO)
+
+### 1. Extended Exposure Windows
+
+Current analyses use a **7-day** pre-sample window for antibiotic exposure. Additional windows to explore:
+
+- **14-day window**: May capture delayed effects or cumulative exposure
+- **30-day window**: Longer-term antibiotic burden, useful for chronic/repeated exposures
+
+The `01_load_and_prepare_data.R` script already generates `_14d` variables. A 30-day window would require modification to the exposure calculation.
+
+### 2. Microbiome Recovery After Antibiotic Cessation
+
+**Objective:** Characterize microbiome recovery dynamics after stopping antibiotics.
+
+**Study design:**
+1. Identify sample pairs where:
+   - Sample A: Has preceding antibiotic exposure (e.g., 7-day window)
+   - Sample B: Collected after Sample A with **no intervening antibiotics**
+   - Variable recovery interval (e.g., 7, 14, 30 days post-cessation)
+
+2. Analyses:
+   - Delta diversity (Shannon, richness) between Sample A → B
+   - Compositional shifts (Bray-Curtis distance)
+   - Recovery of specific taxa (anaerobes, Enterobacteriaceae, Enterococcus)
+   - Time-to-recovery modeling (survival analysis framework)
+
+3. Stratify by:
+   - Antibiotic class (anti-anaerobic, broad-spectrum, etc.)
+   - Duration of prior exposure
+   - Patient group
+
+**Expected findings:**
+- Anaerobe recovery after anti-anaerobic cessation
+- Enterococcus/Enterobacteriaceae normalization after cephalosporin cessation
+- Potential identification of "recovery-resistant" dysbiosis patterns
+
+### 3. Dose-Response Relationships
+
+- Cumulative antibiotic-days vs. microbiome disruption
+- Number of concurrent antibiotics vs. diversity loss
+- Repeated exposure effects (sensitization vs. resilience)
+
+---
+
 ## Changelog
 
 ### 2025-12-28
