@@ -5,7 +5,14 @@
 # Using ALDEx2, MaAsLin3, and ANCOM-BC2 with covariate adjustment
 # =============================================================================
 
-library(tidyverse)
+# Load tidyverse components individually (tidyverse meta-package not installed)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(ggplot2)
+library(tibble)
+library(stringr)
+library(purrr)
 library(ALDEx2)
 library(maaslin3)
 library(ANCOMBC)
