@@ -1,0 +1,21 @@
+name: r_analysis
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - r-tidyverse=2.0
+  - r-vegan=2.6
+  - r-ggplot2=3.4
+  - r-dplyr=1.1
+  - r-reshape2=1.4
+  - r-lme4=1.1
+  - r-lmertest=3.1
+  - r-rmarkdown=2.25
+  - r-knitr=1.45
+  - r-pheatmap=1.0
+  - r-ape=5.7
+  - bioconductor-aldex2=1.34
+  - bioconductor-phyloseq=1.46
+  - r-maaslin2=1.16

@@ -1,0 +1,5 @@
+sample_id	fastq_1	fastq_2	patient_id	sample_date	patient_group	sample_type
+PM001_S1	/path/to/raw/PM001_S1_R1.fastq.gz	/path/to/raw/PM001_S1_R2.fastq.gz	PM001	2019-01-15	IBD	Stool
+PM001_S2	/path/to/raw/PM001_S2_R1.fastq.gz	/path/to/raw/PM001_S2_R2.fastq.gz	PM001	2019-01-22	IBD	Stool
+PM002_S1	/path/to/raw/PM002_S1_R1.fastq.gz	/path/to/raw/PM002_S1_R2.fastq.gz	PM002	2019-02-01	BMT	Stool
+PM002_S2	/path/to/raw/PM002_S2_R1.fastq.gz	/path/to/raw/PM002_S2_R2.fastq.gz	PM002	2019-02-10	BMT	Stool

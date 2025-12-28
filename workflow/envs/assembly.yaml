@@ -1,0 +1,8 @@
+name: assembly
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - megahit=1.2.9
+  - seqkit=2.6.1

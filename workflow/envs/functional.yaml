@@ -1,0 +1,8 @@
+name: functional
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - humann=4.0
+  - metaphlan=4.1.0

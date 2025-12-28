@@ -1,0 +1,143 @@
+# =============================================================================
+# Antibiotic-Microbiome Correlations Pipeline Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Input/Output Paths
+# -----------------------------------------------------------------------------
+
+# Sample sheet (tab-separated, see config/samples_example.tsv for format)
+samples: "config/samples.tsv"
+
+# Drug exposure data (tab-separated: patient_id, date, drug, route)
+drug_exposure: "config/drug_exposure.tsv"
+
+# Output directories
+results_dir: "results"
+logs_dir: "logs"
+
+# -----------------------------------------------------------------------------
+# Database Paths
+# -----------------------------------------------------------------------------
+# These need to be set up using resources/setup_databases.sh
+
+databases:
+  # Bowtie2 index for human genome (GRCh38)
+  host_index: "/path/to/databases/GRCh38/GRCh38.1.bt2"
+
+  # Kraken2 database (Standard, PlusPF, or custom)
+  kraken2: "/path/to/databases/kraken2/standard"
+
+  # HUMAnN databases
+  humann_nucleotide: "/path/to/databases/humann/chocophlan"
+  humann_protein: "/path/to/databases/humann/uniref"
+
+  # MetaPhlAn database
+  metaphlan: "/path/to/databases/metaphlan"
+
+# -----------------------------------------------------------------------------
+# Tool Parameters
+# -----------------------------------------------------------------------------
+
+# fastp quality control
+fastp_quality: 20          # Minimum quality score
+fastp_min_length: 50       # Minimum read length after trimming
+
+# Kraken2 classification
+kraken2_confidence: 0.0    # Confidence threshold (0-1)
+
+# Bracken abundance estimation
+bracken_read_length: 150   # Read length for Bracken
+bracken_threshold: 10      # Minimum reads for species estimation
+
+# MEGAHIT assembly
+megahit_min_contig: 500    # Minimum contig length
+
+# ABRicate
+abricate_minid: 80         # Minimum identity (%)
+abricate_mincov: 60        # Minimum coverage (%)
+
+# -----------------------------------------------------------------------------
+# Analysis Parameters
+# -----------------------------------------------------------------------------
+
+# Antibiotic classification for analysis
+antibiotic_classes:
+  anti_anaerobic:
+    - "Metronidazole"
+    - "Piperacillin/Tazobactam"
+    - "Pip/Tazo"
+    - "Meropenem"
+    - "Ertapenem"
+    - "Clindamycin"
+    - "Amoxicillin/Clavulanate"
+    - "Ampicillin/Sulbactam"
+
+  anti_gram_positive:
+    - "Vancomycin"
+    - "Daptomycin"
+    - "Linezolid"
+    - "Ceftaroline"
+
+  broad_spectrum:
+    - "Meropenem"
+    - "Piperacillin/Tazobactam"
+    - "Pip/Tazo"
+    - "Cefepime"
+    - "Imipenem"
+
+  anti_pseudomonal:
+    - "Cefepime"
+    - "Piperacillin/Tazobactam"
+    - "Pip/Tazo"
+    - "Meropenem"
+    - "Tobramycin"
+    - "Ciprofloxacin"
+    - "Aztreonam"
+
+# Exposure windows for analysis (days before sample)
+exposure_windows:
+  - 7
+  - 14
+  - 30
+
+# Taxonomic groups for aggregation
+taxonomic_groups:
+  obligate_anaerobes:
+    - "Bacteroides"
+    - "Parabacteroides"
+    - "Prevotella"
+    - "Clostridium"
+    - "Faecalibacterium"
+    - "Blautia"
+    - "Roseburia"
+    - "Ruminococcus"
+    - "Eubacterium"
+    - "Coprococcus"
+
+  enterobacteriaceae:
+    - "Escherichia"
+    - "Klebsiella"
+    - "Enterobacter"
+    - "Citrobacter"
+    - "Serratia"
+    - "Proteus"
+
+  enterococcus:
+    - "Enterococcus"
+
+  lactobacillales:
+    - "Lactobacillus"
+    - "Streptococcus"
+    - "Lactococcus"
+
+# Differential abundance thresholds
+aldex2_effect_threshold: 0.5
+aldex2_fdr_threshold: 0.1
+
+maaslin2_qval_threshold: 0.25
+maaslin2_coef_threshold: 0
+
+# Paired sample analysis
+min_days_between_samples: 3
+max_days_between_samples: 90

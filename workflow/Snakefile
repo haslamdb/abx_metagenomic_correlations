@@ -1,0 +1,95 @@
+"""
+Antibiotic-Microbiome Correlations Pipeline
+============================================
+
+Main Snakemake workflow file that orchestrates the full analysis pipeline.
+"""
+
+import pandas as pd
+from pathlib import Path
+
+# Load configuration
+configfile: "config/config.yaml"
+
+# Load sample sheet
+samples = pd.read_csv(config["samples"], sep="\t")
+SAMPLES = samples["sample_id"].tolist()
+
+# Define output directory
+RESULTS = config.get("results_dir", "results")
+LOGS = config.get("logs_dir", "logs")
+
+# Include rule files
+include: "rules/qc.smk"
+include: "rules/host_removal.smk"
+include: "rules/taxonomy.smk"
+include: "rules/functional.smk"
+include: "rules/assembly.smk"
+include: "rules/arg.smk"
+include: "rules/merge.smk"
+include: "rules/analysis.smk"
+
+
+# Target rule - defines all final outputs
+rule all:
+    input:
+        # QC reports
+        expand(f"{RESULTS}/qc/{{sample}}_fastp.html", sample=SAMPLES),
+        # Merged abundance tables
+        f"{RESULTS}/merged/species_abundance.tsv",
+        f"{RESULTS}/merged/genus_abundance.tsv",
+        f"{RESULTS}/merged/pathway_abundance.tsv",
+        f"{RESULTS}/merged/arg_abundance.tsv",
+        # Analysis outputs
+        f"{RESULTS}/analysis/alpha_diversity.tsv",
+        f"{RESULTS}/analysis/differential_abundance/aldex2_results.tsv",
+        f"{RESULTS}/analysis/paired_analysis/paired_results.tsv",
+        # Figures
+        f"{RESULTS}/figures/alpha_diversity_boxplot.pdf",
+        f"{RESULTS}/figures/pcoa_bray_curtis.pdf",
+        f"{RESULTS}/figures/differential_abundance_volcano.pdf",
+
+
+# Rule to generate MultiQC report
+rule multiqc:
+    input:
+        expand(f"{RESULTS}/qc/{{sample}}_fastp.json", sample=SAMPLES),
+    output:
+        f"{RESULTS}/qc/multiqc_report.html",
+    log:
+        f"{LOGS}/multiqc.log",
+    conda:
+        "envs/qc.yaml"
+    shell:
+        """
+        multiqc {RESULTS}/qc -o {RESULTS}/qc --force 2> {log}
+        """
+
+
+# Checkpoint rule for sample validation
+rule validate_samples:
+    input:
+        config["samples"],
+    output:
+        f"{RESULTS}/.samples_validated",
+    run:
+        df = pd.read_csv(input[0], sep="\t")
+        required_cols = ["sample_id", "fastq_1", "fastq_2", "patient_id", "sample_date"]
+        missing = [c for c in required_cols if c not in df.columns]
+        if missing:
+            raise ValueError(f"Missing required columns in sample sheet: {missing}")
+
+        # Check that FASTQ files exist
+        for _, row in df.iterrows():
+            for fq in [row["fastq_1"], row["fastq_2"]]:
+                if not Path(fq).exists():
+                    raise FileNotFoundError(f"FASTQ file not found: {fq}")
+
+        Path(output[0]).touch()
+
+
+# Helper function to get FASTQ paths for a sample
+def get_fastq(wildcards, read):
+    """Get FASTQ file path for a sample and read (1 or 2)."""
+    row = samples[samples["sample_id"] == wildcards.sample].iloc[0]
+    return row[f"fastq_{read}"]

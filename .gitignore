@@ -1,0 +1,55 @@
+# Results and logs (generated data)
+results/
+logs/
+.snakemake/
+
+# Databases (too large for git)
+resources/databases/
+
+# Sample data (contains PHI)
+config/samples.tsv
+config/drug_exposure.tsv
+*.fastq.gz
+*.fq.gz
+*.bam
+*.sam
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Conda
+.conda/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Large files
+*.tar.gz
+*.zip
+*.tar.bz2
