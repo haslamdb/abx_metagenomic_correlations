@@ -315,15 +315,18 @@ quality_summary <- sample_metadata %>%
 print(quality_summary)
 
 # Define high-confidence groups (inpatient, complete Abx data expected)
-high_confidence_groups <- c("BMT", "IF", "LvTx", "PICU")
+# Include SB patients but only Stool samples (exclude Fistula/Ostomy)
+high_confidence_groups <- c("BMT", "IF", "LvTx", "PICU", "SB")
 
 sample_metadata <- sample_metadata %>%
   mutate(
-    high_confidence = PatientGroup %in% high_confidence_groups
+    high_confidence = (PatientGroup %in% high_confidence_groups) &
+                      (SampleType == "Stool" | PatientGroup != "SB")
   )
 
 cat("\n=== High-Confidence Subset ===\n")
 cat("Groups:", paste(high_confidence_groups, collapse = ", "), "\n")
+cat("Note: SB limited to Stool samples only (excluding Fistula/Ostomy)\n")
 cat("Samples:", sum(sample_metadata$high_confidence), "\n")
 cat("Patients:", n_distinct(sample_metadata$MRN[sample_metadata$high_confidence]), "\n")
 

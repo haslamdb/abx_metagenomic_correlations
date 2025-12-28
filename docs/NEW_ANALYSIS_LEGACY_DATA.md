@@ -1,6 +1,6 @@
 # Reanalysis of Legacy Antibiotic-Microbiome Data
 
-**Date:** December 2024
+**Date:** December 2025 (last updated: 2025-12-28)
 **Data Source:** `data/legacy/AbxEffectData20191014` (RData from 2019 analysis)
 **Scripts:** `R/new_analysis_legacy_data/`
 **Results:** `results/new_analysis_legacy_data/`
@@ -24,7 +24,7 @@ This analysis re-examines the relationship between antibiotic exposure and gut m
 |--------|-------|
 | Total samples | 905 |
 | Unique patients | 145 |
-| Sample pairs (2-week window) | 246 |
+| Sample pairs (2-week window) | 349 (346 high-confidence) |
 | Species | 1,460 |
 | Genera | 163 |
 
@@ -34,13 +34,15 @@ This analysis re-examines the relationship between antibiotic exposure and gut m
 |-------|---------|----------|-----------------|-------|
 | LvTx (Liver Transplant) | 234 | 35 | 76.5% | High-confidence |
 | BMT (Bone Marrow Transplant) | 218 | 61 | 66.1% | High-confidence |
-| SB (Short Bowel) | 291 | 16 | 25.4% | |
+| SB (Short Bowel) | 291 (155 Stool) | 16 | 25.4% | High-confidence (Stool only) |
 | IF (Intestinal Failure) | 100 | 16 | 25.0% | High-confidence |
 | IBD (Inflammatory Bowel Disease) | 43 | 10 | **0%** | Excluded - no Abx data |
 | PICU | 16 | 7 | 87.5% | High-confidence |
-| Urology | 3 | 1 | 0% | |
+| Urology | 3 | 1 | 0% | Excluded |
 
-**High-confidence groups** (BMT, IF, LvTx, PICU) were used for primary analyses due to complete inpatient antibiotic records. IBD patients had no recorded antibiotic exposure, likely due to outpatient prescriptions not captured in the hospital system.
+**High-confidence groups** (BMT, IF, LvTx, PICU, SB-Stool) are used for primary analyses due to complete inpatient antibiotic records. SB patients have 291 samples total but only 155 Stool samples are included; Fistula (20) and Ostomy (116) samples are excluded due to different microbial communities. IBD patients had no recorded antibiotic exposure, likely due to outpatient prescriptions not captured in the hospital system.
+
+**High-confidence sample total: 723 samples from 130 patients**
 
 ---
 
@@ -322,7 +324,7 @@ Mixed-effects model: **effect = -0.71 log10, p < 0.001**
 | Bacteroides | -0.17 | 0.032 |
 | Faecalibacterium | -0.15 | 0.056 |
 
-### 5. Paired Sample Analysis (n = 246 pairs)
+### 5. Paired Sample Analysis (n = 346 high-confidence pairs)
 
 | Hypothesis | Test | Effect | p-value |
 |------------|------|--------|---------|
@@ -421,7 +423,7 @@ The reanalysis successfully reveals expected biological patterns that were not d
 
 5. **Covariate adjustment is essential** - Without controlling for co-administered antibiotics, results are confounded and biologically implausible. Proper adjustment reveals pharmacologically expected patterns.
 
-6. **IBD patients should be excluded** from antibiotic analyses due to missing outpatient prescription data (0% recorded exposure).
+6. **IBD patients should be excluded** from antibiotic analyses due to missing outpatient prescription data (0% recorded exposure). SB patients can be included but only Stool samples (Fistula/Ostomy samples have different microbial communities).
 
 ### Methodological Improvements
 
@@ -467,6 +469,7 @@ Rscript R/new_analysis_legacy_data/06_network_visualization.R
 - maaslin3 (v1.0.2) - multivariable association discovery
 - ANCOMBC (v2.10.1) - bias-corrected differential abundance
 - phyloseq (v1.52.0) - microbiome data handling
+- microbiome (v1.30.0) - required by ANCOMBC for data import
 
 All packages are available in the `r-env` conda environment.
 
@@ -539,3 +542,25 @@ results/new_analysis_legacy_data/
     ├── network_summary_by_antibiotic.csv
     └── network_statistics.rds
 ```
+
+---
+
+## Changelog
+
+### 2025-12-28
+
+**Sample inclusion update:**
+- Added SB (Short Bowel) Stool samples to high-confidence subset
+- Excluded SB Fistula (20) and Ostomy (116) samples due to different microbial communities
+- High-confidence samples increased from 568 to **723 samples** (130 patients)
+
+**Bug fixes in `05_individual_antibiotic_effects.R`:**
+- Fixed MaAsLin3 API compatibility: changed deprecated `plot_heatmap`/`plot_scatter` parameters to `plot_summary_plot`/`plot_associations`
+- Installed missing `microbiome` package required by ANCOM-BC2 for data import
+
+**Data preparation (`01_load_and_prepare_data.R`):**
+- Updated high-confidence filter logic to include SB patients with Stool samples only:
+  ```r
+  high_confidence = (PatientGroup %in% high_confidence_groups) &
+                    (SampleType == "Stool" | PatientGroup != "SB")
+  ```

@@ -311,8 +311,8 @@ for (abx in top_antibiotics) {
       transform = "LOG",
       min_prevalence = 0.05,
       cores = 4,
-      plot_heatmap = FALSE,
-      plot_scatter = FALSE
+      plot_summary_plot = FALSE,
+      plot_associations = FALSE
     )
 
     # Extract results for target antibiotic
