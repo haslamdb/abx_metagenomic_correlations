@@ -4,5 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - abricate=1.0.1
-  - ncbi-amrfinderplus=3.12.8
+  - abricate=1.2.0
+  - ncbi-amrfinderplus=4.0.23
+# Note: abricate available in 'abricate' env, amrfinderplus in ~/environments/amrfinderplus
+# RGI 6.0.4 also available in ~/environments/rgi

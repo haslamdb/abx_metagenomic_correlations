@@ -3,9 +3,10 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11
-  - pandas=2.1
-  - numpy=1.26
-  - scipy=1.12
-  - scikit-learn=1.4
-  - biopython=1.83
+  - python=3.12
+  - pandas=2.3.3
+  - numpy=2.3.5
+  - scipy=1.16.3
+  - scikit-learn=1.7.2
+  - biopython=1.86
+# Note: Available in base conda environment

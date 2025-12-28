@@ -4,5 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bowtie2=2.5.3
-  - samtools=1.19
+  - bowtie2=2.5.4
+  - samtools=1.22.1
+# Note: Available in existing 'bowtie2' conda environment at ~/environments/bowtie2

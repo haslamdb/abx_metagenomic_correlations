@@ -56,3 +56,6 @@ Thumbs.db
 *.tar.gz
 *.zip
 *.tar.bz2
+
+# Prepared data (derived from legacy data, may contain PHI)
+data/prepared_data.RData

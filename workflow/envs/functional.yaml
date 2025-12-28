@@ -4,5 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - humann=4.0
-  - metaphlan=4.1.0
+  - humann=4.0.0a1
+  - metaphlan=4.1.1
+# Note: Available in existing 'humann4' conda environment

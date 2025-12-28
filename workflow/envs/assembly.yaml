@@ -5,4 +5,5 @@ channels:
   - defaults
 dependencies:
   - megahit=1.2.9
-  - seqkit=2.6.1
+  - seqkit=2.12.0
+# Note: Available in existing 'assembly' conda environment
