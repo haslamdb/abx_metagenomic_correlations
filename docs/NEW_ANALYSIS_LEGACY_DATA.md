@@ -588,6 +588,40 @@ The `01_load_and_prepare_data.R` script already generates `_14d` variables. A 30
 - Number of concurrent antibiotics vs. diversity loss
 - Repeated exposure effects (sensitization vs. resilience)
 
+### 4. Additional Covariates (Data Collection Needed)
+
+Current models adjust for patient group and concurrent antibiotics. Additional covariates that may influence microbiome composition:
+
+**Nutrition:**
+- **TPN (Total Parenteral Nutrition)** - Associated with gut atrophy, reduced diversity
+- **Enteral feeding** - Type (formula vs. breast milk in pediatrics), route (NG, G-tube)
+- **NPO status** - Duration of nil per os
+- **Diet type** - Solid foods, clear liquids, etc.
+
+**Medications (non-antibiotic):**
+- **Proton pump inhibitors (PPIs)** - Alter gastric pH, associated with dysbiosis and C. diff risk
+- **H2 blockers** - Similar concerns to PPIs
+- **Immunosuppressants** - Tacrolimus, cyclosporine, steroids (especially relevant for transplant patients)
+- **Chemotherapy** - Mucositis, neutropenia effects
+- **Motility agents** - Metoclopramide, erythromycin (sub-antimicrobial doses)
+- **Laxatives/stool softeners** - Alter transit time
+
+**Clinical factors:**
+- **Primary diagnosis** - Beyond patient group (specific transplant indication, etc.)
+- **Comorbidities** - Diabetes, renal failure, liver disease
+- **GI anatomy** - Surgical history, ostomies, fistulas, bowel resection length
+- **Infection status** - Active infections, C. diff history
+- **ICU admission** - Critical illness effects
+
+**Demographics:**
+- **Age** - Pediatric vs. adult microbiome differences
+- **Sex** - Hormonal influences on gut microbiome
+
+**Environmental:**
+- **Hospital unit** - Potential for nosocomial organism acquisition
+- **Length of stay** - Hospital-associated microbiome shifts
+- **Prior hospitalizations** - Cumulative healthcare exposure
+
 ---
 
 ## Changelog
