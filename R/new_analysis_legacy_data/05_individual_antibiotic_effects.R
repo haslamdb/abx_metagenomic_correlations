@@ -212,10 +212,16 @@ for (abx in top_antibiotics) {
   other_abx <- setdiff(names(abx_cols), abx)
   other_abx_cols <- abx_cols[other_abx]
 
-  # Build covariate dataframe
-  covariates_df <- meta_aligned %>%
-    dplyr::select(sample_id, all_of(target_col), all_of(other_abx_cols), patient_group) %>%
-    dplyr::mutate(dplyr::across(all_of(c(target_col, other_abx_cols)), as.numeric))
+  # Build covariate dataframe - select columns explicitly
+  all_abx_cols <- c(target_col, other_abx_cols)
+  cols_to_select <- c("sample_id", all_abx_cols, "patient_group")
+
+  covariates_df <- meta_aligned[, cols_to_select, drop = FALSE]
+
+  # Convert antibiotic columns to numeric
+  for (col in all_abx_cols) {
+    covariates_df[[col]] <- as.numeric(covariates_df[[col]])
+  }
 
   rownames(covariates_df) <- covariates_df$sample_id
 
