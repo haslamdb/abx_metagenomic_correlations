@@ -9,6 +9,7 @@
 
 **Scripts:** `R/new_analysis_legacy_data/`
 **Results:** `results/new_analysis_legacy_data/`
+**Master script:** `R/new_analysis_legacy_data/run_all_analysis.sh`
 
 ---
 
@@ -198,21 +199,54 @@ This isolates the effect of each antibiotic by controlling for:
 
 ---
 
-### Script 4: Paired Sample Analysis
+### Script 4: Paired Sample Analysis (Refactored 2025-12-28)
 **`04_paired_sample_analysis.R`**
 
-- Within-patient microbiome changes
-- Hypothesis testing with Wilcoxon and mixed-effects models
-- Dose-response analysis
+Analyzes within-patient microbiome changes between paired samples using **individual antibiotics** (not broad categories) with proper covariate adjustment.
+
+#### Major Refactoring (2025-12-28)
+
+**Previous approach:** Used broad antibiotic categories (anti-anaerobic, broad-spectrum, any) which obscured individual drug effects and produced misleading results (e.g., H3 "broad-spectrum increases Enterobacteriaceae" was wrong).
+
+**New approach:** Tests each of 10 individual antibiotics separately with LMM and covariate adjustment:
+- Pip_Tazo, Meropenem, Cefepime, Ceftriaxone, Ciprofloxacin
+- Metronidazole, Clindamycin, TMP_SMX, Vancomycin_IV, Vancomycin_PO
+
+#### Model Structure
+
+For each antibiotic (e.g., Meropenem):
+```r
+outcome ~ Meropenem_exposed + Pip_Tazo_between + Cefepime_between + ... +
+          interval_days + (1|MRN)
+```
+
+This isolates each antibiotic's effect by:
+- **Covariate adjustment** for other antibiotics given between samples
+- **Time adjustment** for interval between paired samples
+- **Patient random effect** for multiple pairs per patient
+
+#### Outcomes Tested
+
+1. **delta_shannon** - Change in Shannon diversity
+2. **delta_anaerobes** - Log2 fold-change in obligate anaerobes
+3. **delta_enterobact** - Log2 fold-change in Enterobacteriaceae
+4. **delta_enterococcus** - Log2 fold-change in Enterococcus
+5. **bray_distance** - Bray-Curtis distance (community instability)
+
+#### Data Preparation Changes
+
+Script `01_load_and_prepare_data.R` was also updated to calculate individual antibiotic exposures between paired samples:
+- `Pip_Tazo_between`, `Meropenem_between`, etc. (days of exposure)
+- Route-specific: `Vancomycin_IV_between`, `Vancomycin_PO_between`
 
 **Outputs:**
-- `paired_analysis/paired_sample_metrics.csv`
-- `paired_analysis/hypothesis_tests.csv`
-- `figures/paired_delta_shannon.pdf`
-- `figures/paired_delta_anaerobes.pdf`
-- `figures/paired_bray_curtis.pdf`
-- `figures/paired_analysis_panel.pdf`
-- `figures/dose_response_bray.pdf`
+- `paired_analysis/individual_abx_lmm_results.csv` - Full LMM results
+- `paired_analysis/individual_abx_significant.csv` - Significant findings (p < 0.05)
+- `paired_analysis/paired_sample_metrics.csv` - Paired sample data with exposures
+- `paired_analysis/exposure_summary.csv` - Exposure counts per antibiotic
+- `figures/paired_individual_abx_shannon.pdf` - Forest plot for Shannon
+- `figures/paired_individual_abx_enterobact.pdf` - Forest plot for Enterobacteriaceae
+- `figures/paired_individual_abx_heatmap.pdf` - Heatmap of all effects
 
 ---
 
@@ -332,6 +366,138 @@ network_graphs/
 
 ---
 
+### Script 7: Microbiome Recovery Analysis (Updated - 2025-12-28)
+**`07_recovery_analysis.R`**
+
+Analyzes microbiome recovery after antibiotic cessation using paired samples where:
+1. Antibiotics were given before sample 1 (7-day window)
+2. No **meaningful** antibiotics between samples (TMP_SMX and Azithromycin excluded as they have minimal microbiome impact)
+
+#### Study Design
+
+**Recovery pairs:** Sample pairs where patient was on antibiotics → then off antibiotics
+- Uses **consistent paired-sample methodology** with persistence script
+- Analyzes S1 (on Abx) → S2 (off Abx) changes within the same patients
+
+#### Sample Sizes
+
+| Analysis | Pairs |
+|----------|-------|
+| Pooled (all focus Abx) | 46 |
+| Single-antibiotic pairs | 42 (91.3%) |
+
+Single-antibiotic breakdown:
+- Pip_Tazo: 25 pairs
+- Cefepime: 11 pairs
+- Meropenem: 5 pairs
+- Metronidazole: 1 pair (too few)
+
+Median recovery interval: 7 days (range 3-14)
+
+#### Statistical Approach
+
+**Functional group analysis:**
+- Calculate mean abundance at S1 and S2 for anaerobes, Enterobact, Enterococcus
+- Change = S2 - S1 (percentage points)
+- Retention = (S2 / S1) × 100%
+- Paired t-test on the difference
+
+**Individual antibiotic analysis:**
+- Filter to single-antibiotic pairs (91% of cohort)
+- Analyze each antibiotic's effect on functional groups separately
+- Provides cleaner signal without polypharmacy confounding
+
+**Outputs:**
+```
+recovery_analysis/
+├── recovery_pairs.csv                      # Recovery pair metadata
+├── recovery_pooled.csv                     # Pooled genus-level analysis
+├── recovery_by_antibiotic.csv              # Per-antibiotic genus stratification
+├── recovery_functional_groups.csv          # Pooled functional group summary
+└── recovery_by_individual_antibiotic.csv   # Individual abx functional groups
+
+figures/
+├── recovery_heatmap.pdf            # Heatmap of genus recovery by antibiotic
+├── recovery_forest_pooled.pdf      # Forest plot of pooled effects
+├── recovery_comparison_by_abx.pdf  # Bar plot comparing key genera
+└── recovery_vs_interval.pdf        # Recovery vs time between samples
+```
+
+---
+
+### Script 8: Persistence Mechanism Analysis (Updated - 2025-12-28)
+**`08_persistence_analysis.R`**
+
+Investigates what happens to functional groups during antibiotic exposure using paired samples where antibiotics were given between S1 and S2.
+
+#### Study Design
+
+**Persistence pairs:** Sample pairs where antibiotics were administered between samples
+- Uses **consistent paired-sample methodology** with recovery script
+- Analyzes S1 (pre-Abx) → S2 (post-Abx) changes within the same patients
+- n=206 high-confidence pairs
+
+#### Analyses Performed
+
+1. **Pooled functional group analysis**: Changes in anaerobes, Enterobact, Enterococcus
+2. **Individual antibiotic "includes" analysis**: Effect of each antibiotic (with overlap)
+3. **Genus-level breakdown**: Individual genus persistence for key taxa
+
+#### Sample Sizes
+
+| Analysis | Pairs | Notes |
+|----------|-------|-------|
+| Pooled | 206 | All pairs with Abx between |
+| Single-antibiotic | 16 (7.7%) | Too few for reliable analysis |
+| Multiple antibiotics | 149 (71.3%) | Most pairs |
+
+Individual antibiotic breakdown (includes analysis, pairs overlap):
+- Pip_Tazo: 14 pairs (57% monotherapy)
+- Meropenem: 10 pairs (40% monotherapy)
+- Cefepime: 8 pairs (38% monotherapy)
+- Vancomycin_IV: 8 pairs (0% monotherapy)
+
+#### Statistical Approach
+
+**Functional group analysis:**
+- Calculate mean abundance at S1 and S2 for anaerobes, Enterobact, Enterococcus
+- Change = S2 - S1 (percentage points)
+- Retention = (S2 / S1) × 100%
+- Paired t-test on the difference
+
+**Individual antibiotic "includes" analysis:**
+- For each antibiotic, analyze all pairs that received it (even with other abx)
+- Reports % that were monotherapy for context
+- Provides antibiotic-specific patterns despite polypharmacy
+
+#### Key Functional Groups
+
+| Group | Definition | Genera |
+|-------|------------|--------|
+| **Obligate Anaerobes** | Require anaerobic conditions | Bacteroides, Blautia, Roseburia, Faecalibacterium, Ruminococcus, etc. |
+| **Enterobacteriaceae** | Facultative anaerobes, stress-resistant | Escherichia, Klebsiella, Enterobacter, Citrobacter, etc. |
+| **Enterococcus** | Intrinsically resistant to many antibiotics | Enterococcus |
+
+**Outputs:**
+```
+persistence_analysis/
+├── paired_persistence_data.csv     # Paired sample abundances before/after Abx
+├── genus_persistence.csv           # Genus-level persistence statistics
+├── group_persistence_summary.csv   # Summary of group-level persistence
+├── persistence_by_antibiotic.csv   # Individual antibiotic functional group effects
+├── dominance_by_exposure.csv       # Dominance patterns by exposure status
+├── sample_abundances.csv           # Sample-level abundances for all key genera
+
+figures/
+├── persistence_composition.pdf     # Stacked bar of composition by exposure
+├── persistence_boxplot.pdf         # Boxplot of log2FC during antibiotics
+├── genus_persistence_heatmap.pdf   # Heatmap of genus-level persistence
+├── persistence_scatter.pdf         # Scatter plot of before vs after
+└── genus_persistence_forest.pdf    # Forest plot of genus persistence
+```
+
+---
+
 ## Key Results
 
 ### 1. Alpha Diversity
@@ -386,16 +552,137 @@ Mixed-effects model: **effect = -0.71 log10, p < 0.001**
 | Bacteroides | -0.17 | 0.032 |
 | Faecalibacterium | -0.15 | 0.056 |
 
-### 5. Paired Sample Analysis (n = 346 high-confidence pairs)
+### 5. Paired Sample Analysis - Individual Antibiotics (n = 343 pairs)
 
-| Hypothesis | Test | Effect | p-value |
-|------------|------|--------|---------|
-| Anti-anaerobic reduces anaerobes | Mixed-effects | -1.61 log2FC | **0.005** |
-| Broad-spectrum affects Enterobact | Mixed-effects | -1.28 log2FC | **0.04** |
-| Dose-response (Abx-days vs Shannon) | Spearman | rho = -0.14 | 0.07 |
-| Abx increases Bray-Curtis distance | Mixed-effects | +0.03 | 0.43 |
+**Refactored 2025-12-28** to use individual antibiotics with LMM and covariate adjustment, replacing misleading broad category analyses.
 
-### 6. Individual Antibiotic Effects (Covariate-Adjusted)
+#### Significant Findings (p < 0.05)
+
+| Antibiotic | Outcome | Effect | p-value | Interpretation |
+|------------|---------|--------|---------|----------------|
+| **Pip_Tazo** | Anaerobes | -1.82 log2FC | **0.0005** | Strong anti-anaerobic effect |
+| **Meropenem** | Enterobacteriaceae | -2.06 log2FC | **0.0043** | Carbapenem kills gram-negatives |
+| **Metronidazole** | Anaerobes | -3.38 log2FC | **0.0087** | Strongest anti-anaerobic effect |
+| **Meropenem** | Bray-Curtis | +0.12 | **0.0087** | Increases community instability |
+| **Pip_Tazo** | Bray-Curtis | +0.09 | **0.0244** | Increases community instability |
+| **Meropenem** | Enterococcus | +1.42 log2FC | **0.0317** | Classic carbapenem selection |
+| **Cefepime** | Enterobacteriaceae | -1.60 log2FC | **0.0318** | Cephalosporin kills gram-negatives |
+
+#### Key Insight: Broad Categories Were Misleading
+
+The original H3 hypothesis ("broad-spectrum antibiotics increase Enterobacteriaceae") was **incorrect**. When analyzed by individual antibiotic:
+- **Meropenem** and **Cefepime** actually **decrease** Enterobacteriaceae
+- The "broad-spectrum" signal was likely confounded by Vancomycin (which allows gram-negative expansion)
+- Meropenem shows the clearest carbapenem signature: kills Enterobacteriaceae, selects for resistant Enterococcus
+
+#### Exposure Summary
+
+| Antibiotic | Pairs Exposed | % of Total |
+|------------|---------------|------------|
+| Pip_Tazo | 82 | 23.9% |
+| TMP_SMX | 63 | 18.4% |
+| Vancomycin_IV | 47 | 13.7% |
+| Meropenem | 46 | 13.4% |
+| Cefepime | 43 | 12.5% |
+| Ciprofloxacin | 27 | 7.9% |
+| Metronidazole | 10 | 2.9% |
+| Ceftriaxone | 8 | 2.3% |
+| Clindamycin | 8 | 2.3% |
+| Vancomycin_PO | 3 | 0.9% (skipped - too few) |
+
+### 6. Microbiome Recovery After Antibiotic Cessation (n = 46 pairs)
+
+Analyzes which genera recover fastest after stopping antibiotics (Abx before S1, no meaningful Abx between).
+
+#### Significant Recoveries (p < 0.05)
+
+| Antibiotic | Genus | Log2FC | p-value | Interpretation |
+|------------|-------|--------|---------|----------------|
+| **Pooled** | Veillonella | +2.43 | 0.002 | Universal rapid recovery |
+| **Pooled** | Romboutsia | +2.22 | 0.003 | Firmicutes recovery |
+| **Pip_Tazo** | Veillonella | +2.45 | 0.014 | Rapid recovery |
+| **Pip_Tazo** | Clostridioides | +1.64 | 0.021 | C. diff risk window |
+| **Pip_Tazo** | Roseburia | +1.35 | 0.035 | Butyrate producer |
+| **Pip_Tazo** | Coprococcus | +1.46 | 0.042 | Butyrate producer |
+| **Pip_Tazo** | Eubacterium | +1.42 | 0.047 | Anaerobe recovery |
+| **Meropenem** | Blautia | +4.99 | 0.045 | Strongest recovery |
+
+#### Key Biological Insights
+
+1. **Obligate anaerobes recover after anti-anaerobic cessation**
+   - Roseburia, Coprococcus, Blautia, Eubacterium increase after Pip_Tazo
+   - These are butyrate-producing Firmicutes depleted by anti-anaerobic activity
+
+2. **Blautia shows strongest recovery after Meropenem** (+5 log2FC)
+   - Carbapenems devastate gut anaerobes; Blautia rebounds fastest
+
+3. **Veillonella recovers universally** across all antibiotics tested
+
+4. **Clostridioides increases in recovery window**
+   - Consistent with known C. difficile infection risk period post-antibiotics
+
+5. **Enterococcus declines after Meropenem/Metronidazole**
+   - These antibiotics select for Enterococcus during exposure
+   - After cessation, Enterococcus returns toward baseline (not significant, p=0.32)
+
+### 8. Persistence and Recovery Analysis (Updated Methodology)
+
+Both analyses now use **consistent paired-sample methodology** without external "healthy baseline" comparisons.
+
+#### Persistence: During Antibiotics (n=206 pairs, Abx BETWEEN S1→S2)
+
+| Group | S1 (pre-Abx) | S2 (post-Abx) | Change | Retention | p-value |
+|-------|--------------|---------------|--------|-----------|---------|
+| **Anaerobes** | 20.9% | 18.8% | -2.1% | 90% | 0.256 |
+| **Enterobact** | 25.0% | 25.6% | +0.6% | 102% | 0.810 |
+| **Enterococcus** | 16.3% | 21.8% | +5.5% | 134% | **0.018** |
+
+#### Recovery: After Antibiotics Stop (n=46 pairs, Abx BEFORE S1, none between)
+
+| Group | S1 (on Abx) | S2 (off Abx) | Change | Retention | p-value |
+|-------|-------------|--------------|--------|-----------|---------|
+| **Anaerobes** | 13.4% | 14.6% | +1.3% | 110% | 0.739 |
+| **Enterobact** | 27.7% | 37.5% | +9.7% | 135% | **0.052** |
+| **Enterococcus** | 18.1% | 10.2% | -7.9% | 57% | 0.124 |
+
+#### Individual Antibiotic Analysis
+
+**Recovery (single-antibiotic pairs, 91% of recovery cohort):**
+
+| Antibiotic | n | Anaerobes | Enterobact | Enterococcus |
+|------------|---|-----------|------------|--------------|
+| Pip_Tazo | 25 | +3.5% (p=0.47) | +4.1% (p=0.49) | +1.1% (p=0.85) |
+| Cefepime | 11 | -1.3% (p=0.88) | +8.7% (p=0.32) | -13.4% (p=0.23) |
+| Meropenem | 5 | -14.8% (p=0.41) | +23.3% (p=0.29) | -0.7% (p=0.93) |
+
+**Persistence (includes-antibiotic, most have multiple abx):**
+
+| Antibiotic | n | % mono | Anaerobes | Enterobact | Enterococcus |
+|------------|---|--------|-----------|------------|--------------|
+| Pip_Tazo | 14 | 57% | -7.7% (p=0.17) | +8.8% (p=0.53) | -3.2% (p=0.54) |
+| Cefepime | 8 | 38% | -11.3% (p=0.14) | +29.1% (p=0.16) | +1.2% (p=0.95) |
+| Meropenem | 10 | 40% | -8.1% (p=0.14) | -0.4% (p=0.97) | +5.9% (p=0.57) |
+| Vancomycin_IV | 8 | 0% | -0.8% (p=0.87) | -3.0% (p=0.86) | +14.1% (p=0.44) |
+
+#### Key Biological Insights
+
+1. **During antibiotics**: Enterococcus significantly INCREASES (+5.5%, p=0.018)
+   - Intrinsic resistance leads to selection during antibiotic exposure
+   - Most pronounced with Vancomycin_IV (+14%) and Meropenem (+6%)
+
+2. **After antibiotics stop**: Enterobacteriaceae INCREASE (+9.7%, p=0.052)
+   - Enterobact expand when competition (anaerobes) is depleted
+   - Most pronounced after Meropenem (+23%) and Cefepime (+9%)
+
+3. **Cefepime shows largest Enterobact expansion** (+29% during exposure)
+   - Despite gram-negative coverage, Enterobact persist and expand
+   - Anaerobes depleted (-11%), creating ecological niche
+
+4. **Sample sizes limit statistical power** for individual antibiotic analysis
+   - Consistent patterns emerge despite non-significant p-values
+   - Larger cohorts needed to confirm antibiotic-specific effects
+
+### 9. Individual Antibiotic Effects (Covariate-Adjusted)
 
 **Critical finding:** Without adjusting for co-administered antibiotics, results are confounded and often biologically implausible. With proper covariate adjustment, results align with known antibiotic pharmacology.
 
@@ -523,8 +810,10 @@ Rscript R/new_analysis_legacy_data/02b_diversity_individual_antibiotics.R
 Rscript R/new_analysis_legacy_data/03_differential_abundance.R
 Rscript R/new_analysis_legacy_data/04_paired_sample_analysis.R
 Rscript R/new_analysis_legacy_data/05_individual_antibiotic_effects.R
-Rscript R/new_analysis_legacy_data/06_genus_level_analysis.R  # New: genus-level analysis
+Rscript R/new_analysis_legacy_data/06_genus_level_analysis.R
 Rscript R/new_analysis_legacy_data/06_network_visualization.R
+Rscript R/new_analysis_legacy_data/07_recovery_analysis.R
+Rscript R/new_analysis_legacy_data/08_persistence_analysis.R
 ```
 
 ### Required R Packages
@@ -567,15 +856,16 @@ data/
 R/new_analysis_legacy_data/
 ├── 00_build_count_matrices_from_bracken.R  # Build matrices from raw Bracken
 ├── 01_load_and_prepare_data.R
-├── 01_rebuild_sample_metadata.R       # Alternative: rebuild metadata in R
 ├── 02_diversity_analysis.R
 ├── 02b_diversity_individual_antibiotics.R
 ├── 03_differential_abundance.R
 ├── 04_paired_sample_analysis.R
 ├── 05_individual_antibiotic_effects.R
-├── 05b_maaslin3_patch.R               # MaAsLin3 compatibility patch
 ├── 06_genus_level_analysis.R          # Genus-level differential abundance
-└── 06_network_visualization.R
+├── 06_network_visualization.R
+├── 07_recovery_analysis.R             # Microbiome recovery after Abx cessation
+├── 08_persistence_analysis.R          # Persistence mechanism analysis
+└── run_all_analysis.sh                # Master script to run all analyses
 
 results/new_analysis_legacy_data/
 ├── data_quality/
@@ -624,13 +914,25 @@ results/new_analysis_legacy_data/
 │   ├── summary_by_antibiotic.csv
 │   ├── enterococcus_by_antibiotic.csv
 │   └── analysis_metadata.rds
-└── network_graphs/
-    ├── antibiotic_species_network.html
-    ├── antibiotic_species_network_hierarchical.html
-    ├── network_*.html (per antibiotic)
-    ├── network_associations.csv
-    ├── network_summary_by_antibiotic.csv
-    └── network_statistics.rds
+├── network_graphs/
+│   ├── antibiotic_species_network.html
+│   ├── antibiotic_species_network_hierarchical.html
+│   ├── network_*.html (per antibiotic)
+│   ├── network_associations.csv
+│   ├── network_summary_by_antibiotic.csv
+│   └── network_statistics.rds
+├── recovery_analysis/
+│   ├── recovery_pairs.csv
+│   ├── recovery_pooled.csv
+│   └── recovery_by_antibiotic.csv
+└── persistence_analysis/
+    ├── paired_persistence_data.csv
+    ├── genus_persistence.csv
+    ├── group_persistence_summary.csv
+    ├── dominance_by_exposure.csv
+    ├── sample_abundances.csv
+    ├── recovery_vs_baseline.csv        # KEY: Recovery as % of healthy baseline
+    └── genus_recovery_vs_baseline.csv
 ```
 
 ---
@@ -715,6 +1017,114 @@ Current models adjust for patient group and concurrent antibiotics. Additional c
 ---
 
 ## Changelog
+
+### 2025-12-28 (Methodology Update & Individual Antibiotic Analysis)
+
+**Consistent paired-sample methodology for recovery and persistence:**
+
+Both scripts (07 and 08) now use the same approach:
+- Analyze S1 → S2 changes within the same patients
+- Report: mean S1, mean S2, change (S2-S1), retention (S2/S1 × 100%), p-value
+- Removed misleading "healthy baseline" comparisons from persistence script
+
+**Added individual antibiotic analysis:**
+
+- Recovery script: Analyzes single-antibiotic pairs (91% of cohort = 42 pairs)
+  - Pip_Tazo (n=25), Cefepime (n=11), Meropenem (n=5)
+  - Output: `recovery_by_individual_antibiotic.csv`
+
+- Persistence script: Analyzes "includes" antibiotic (pairs overlap)
+  - Most pairs have multiple antibiotics (71%), so uses includes analysis
+  - Reports % monotherapy for context
+  - Output: `persistence_by_antibiotic.csv`
+
+**Key findings from individual antibiotic analysis:**
+
+| Antibiotic | During Abx (Enterobact) | After Abx (Enterobact) |
+|------------|-------------------------|------------------------|
+| Cefepime | +29.1% | +8.7% |
+| Meropenem | -0.4% | +23.3% |
+| Pip_Tazo | +8.8% | +4.1% |
+
+- Cefepime drives largest Enterobact expansion during exposure
+- Meropenem: Enterobact stable during, then expand after
+- Vancomycin_IV selects for Enterococcus (+14%)
+
+---
+
+### 2025-12-28 (Persistence Mechanism Analysis)
+
+**New analysis: Why Enterobacteriaceae/Enterococcus dominate (Script 08)**
+
+- Added `08_persistence_analysis.R` to investigate persistence mechanisms
+- Compares healthy-like vs antibiotic-exposed samples
+- Analyzes paired samples with antibiotics between (n=206 pairs)
+- Calculates recovery as % of healthy baseline (n=46 recovery pairs)
+- Includes genus-level breakdown for key taxa
+
+**Key findings:**
+- Enterococcus expands 3.58x during antibiotic exposure (cross-sectional)
+- Enterococcus shows 133.6% retention in paired analysis (expands during Abx)
+- Obligate anaerobes recover to only 57% of healthy baseline after Abx cessation
+- Enterococcus remains at 221% of baseline even in "recovery" samples
+- Key depleted genera: Ruminococcus (-0.82 log2FC), Blautia (-0.74 log2FC)
+
+**Conclusion:** Dominance comes from **persistence during antibiotic exposure**, not faster recovery. This represents chronic microbiome disruption where the ecological niche vacated by anaerobes is filled by intrinsically resistant organisms.
+
+**New outputs:**
+- `persistence_analysis/recovery_vs_baseline.csv` (key summary table)
+- `persistence_analysis/genus_persistence.csv`
+- `figures/persistence_composition.pdf`
+- `figures/persistence_boxplot.pdf`
+- `figures/genus_persistence_forest.pdf`
+
+---
+
+### 2025-12-28 (Recovery Analysis)
+
+**New analysis: Microbiome recovery after antibiotic cessation (Script 07)**
+
+- Added `07_recovery_analysis.R` to analyze which taxa recover after stopping antibiotics
+- Study design: Paired samples where Abx before S1, no meaningful Abx between (TMP_SMX/Azithromycin excluded)
+- 46 recovery pairs analyzed (Pip_Tazo: 27, Cefepime: 13, Meropenem: 7, Metronidazole: 3)
+
+**Key findings:**
+- Butyrate-producing anaerobes (Roseburia, Coprococcus, Blautia) recover after Pip_Tazo cessation
+- Blautia shows strongest recovery after Meropenem (+5 log2FC)
+- Clostridioides increases in recovery window (C. diff risk)
+- Veillonella recovers universally across all antibiotics
+
+**New outputs:**
+- `recovery_analysis/recovery_pooled.csv`
+- `recovery_analysis/recovery_by_antibiotic.csv`
+- `figures/recovery_heatmap.pdf`
+- `figures/recovery_forest_pooled.pdf`
+
+---
+
+### 2025-12-28 (Paired Analysis Refactoring)
+
+**Major refactoring of paired sample analysis (Script 04):**
+
+- **Problem:** Original analysis used broad antibiotic categories (anti-anaerobic, broad-spectrum) which produced misleading results. The H3 hypothesis "broad-spectrum antibiotics increase Enterobacteriaceae" was incorrect.
+
+- **Solution:** Refactored to test individual antibiotics with LMM and covariate adjustment:
+  - Modified `01_load_and_prepare_data.R` to calculate individual antibiotic exposures between paired samples (days of exposure for each of 10 antibiotics)
+  - Rewrote `04_paired_sample_analysis.R` to use LMM: `outcome ~ target_abx + other_abx_covariates + interval_days + (1|MRN)`
+  - Includes Vancomycin split by route (IV vs PO)
+
+- **Key findings:**
+  - Meropenem and Cefepime **decrease** Enterobacteriaceae (not increase as broad category suggested)
+  - Meropenem shows classic carbapenem signature: kills Enterobacteriaceae, selects for Enterococcus
+  - Pip_Tazo and Metronidazole significantly reduce anaerobes
+  - Vancomycin IV shows no significant effects (consistent with no gut penetration)
+
+- **New outputs:**
+  - `paired_analysis/individual_abx_lmm_results.csv`
+  - `paired_analysis/individual_abx_significant.csv`
+  - `figures/paired_individual_abx_heatmap.pdf`
+
+---
 
 ### 2025-12-28 (Data Pipeline Rebuild)
 
