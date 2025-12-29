@@ -55,7 +55,8 @@ sample_metadata$richness <- rowSums(species_matrix > 0)
 cat("=== Using Pre-computed Antibiotic Exposures ===\n\n")
 
 # Use antibiotics available in prepared_data
-top_antibiotics <- c("Pip_Tazo", "TMP_SMX", "Vancomycin", "Cefepime",
+# Note: Vancomycin split by route - IV (no gut penetration) vs PO (stays in gut lumen)
+top_antibiotics <- c("Pip_Tazo", "TMP_SMX", "Vancomycin_IV", "Vancomycin_PO", "Cefepime",
                      "Meropenem", "Ciprofloxacin", "Metronidazole",
                      "Ceftriaxone", "Clindamycin")
 

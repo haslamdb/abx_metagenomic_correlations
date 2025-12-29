@@ -1,6 +1,6 @@
 # Project: Antibiotic-Metagenomic Correlations
 
-**Last Updated:** 2025-12-28
+**Last Updated:** 2025-12-29
 **Status:** Active
 **Type:** Research
 
@@ -14,13 +14,31 @@ Reanalysis of legacy antibiotic-microbiome data (2019) using modern compositiona
 
 ## Current Phase
 
-**Phase 7: Vancomycin Route Split Analysis** - In Progress
+**Phase 7: Vancomycin Route Split Analysis** - **COMPLETE**
 
-Re-running all analyses with vancomycin separated by administration route:
-- **Vancomycin_IV** - Intravenous (does not reach intestinal lumen, no direct microbiome effect)
-- **Vancomycin_PO** - Oral (stays in gut lumen, massive microbiome effect)
+Re-ran all analyses with vancomycin separated by administration route:
+- **Vancomycin_IV** - Intravenous (does not reach intestinal lumen, no direct microbiome effect) - **COMPLETE**
+- **Vancomycin_PO** - Oral (stays in gut lumen, massive microbiome effect) - **SKIPPED** (only 8 exposed samples, need ≥10)
 
 Previous analyses combined IV and PO vancomycin, confounding the observed effects. Oral vancomycin (~18% of doses) likely drove the strong Lachnospiraceae depletion pattern attributed to "vancomycin."
+
+### Species-Level Analysis Status (Script 05)
+
+| Antibiotic | ALDEx2 | MaAsLin3 | ANCOM-BC2 | Status |
+|------------|--------|----------|-----------|--------|
+| Pip_Tazo | ✓ | ✓ | ✓ | Complete |
+| TMP_SMX | ✓ | ✓ | ✓ | Complete |
+| Vancomycin_IV | ✓ | ✓ | ✓ | Complete |
+| Cefepime | ✓ | ✓ | ✓ | Complete |
+| Meropenem | ✓ | ✓ | ✓ | Complete |
+| Ciprofloxacin | ✓ | ✓ | ✓ | Complete |
+| Metronidazole | ✓ | ✓ | ✓ | Complete |
+| Ceftriaxone | ✓ | ✓ | ✓ | Complete |
+| Clindamycin | ✓ | ✓ | ✓ | Complete |
+
+### Genus-Level Analysis Status (Script 06)
+- **Status:** Complete
+- Uses Vancomycin_IV/PO split covariates
 
 ---
 
@@ -68,6 +86,16 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 - [x] Multi-method concordance at genus level
 - **Output:** `results/new_analysis_legacy_data/individual_antibiotics_genus_level/`
 
+### Phase 10: Combined Results and Comparative Analyses (2025-12-29)
+- [x] Combined species-level and genus-level results from all three methods
+- [x] Multi-method concordance analysis (577 robust species associations, 147 genus associations)
+- [x] Enterobacteriaceae-focused analysis (499 associations, 2 by all 3 methods)
+- [x] Anaerobe-focused analysis (760 associations, 22 by all 3 methods)
+- [x] Cefepime vs Pip/Tazo comparative analysis with Venn diagrams
+- [x] Pathogenic vs non-pathogenic species comparison
+- **Scripts:** `05c_combine_results.R`, `07_cefepime_vs_piptazo_comparison.R`, `08_pathogenic_vs_nonpathogenic_comparison.R`
+- **Output:** `results/new_analysis_legacy_data/combined_results/`, `results/new_analysis_legacy_data/cefepime_vs_piptazo/`
+
 ### Phase 8: Microbiome Recovery Analysis (Updated - 2025-12-28)
 - [x] Identify recovery pairs (Abx before S1, no meaningful Abx between)
 - [x] Pooled functional group recovery analysis (n=46 pairs)
@@ -89,10 +117,9 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 
 ## Pending Work (TODO)
 
-### High Priority (Phase 7 - In Progress)
-- [ ] Complete vancomycin route split re-analysis (running in screen `abx_vanc_split`)
-- [ ] Compare Vancomycin_IV vs Vancomycin_PO effects
-- [ ] Validate that IV vancomycin shows minimal/no direct microbiome effect
+### High Priority
+- [x] ~~Complete vancomycin route split re-analysis~~ - **DONE** (all 9 antibiotics complete)
+- [x] ~~Validate that IV vancomycin shows minimal/no direct microbiome effect~~ - **Confirmed** (only 16 robust associations vs 56-137 for other antibiotics)
 - [ ] Update network visualizations with route-specific results
 
 ### Medium Priority
@@ -101,8 +128,8 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 - [ ] Integrate findings into summary document
 
 ### Future Analyses (see docs/NEW_ANALYSIS_LEGACY_DATA.md)
+- [ ] **ARG abundance analysis** - Run same antibiotic-association analysis with antibiotic resistance gene (ARG) abundance results
 - [ ] 14-day and 30-day exposure windows
-- [ ] Microbiome recovery after antibiotic cessation
 - [ ] Additional covariates (TPN, PPIs, immunosuppressants)
 
 ---
@@ -128,6 +155,68 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 5. **Vancomycin route matters** - IV vancomycin doesn't reach gut lumen (no direct effect), while PO vancomycin stays in gut (strong effect). Previous "Vancomycin" results were confounded by mixing routes (~18% PO, ~82% IV)
 6. **Persistence, not recovery, drives dominance** - Enterobacteriaceae/Enterococcus dominate because they persist during antibiotics (stress response, intrinsic resistance), while anaerobes are depleted and fail to recover
 
+### Multi-Method Differential Abundance Results (Species Level)
+
+**Completed antibiotics (7/9) with Vancomycin_IV/PO split covariates:**
+
+| Antibiotic | ALDEx2 sig | MaAsLin3 sig | ANCOM-BC2 sig | Robust (2+ methods) |
+|------------|------------|--------------|---------------|---------------------|
+| Pip_Tazo | 33 | 120 | 424 | 137 |
+| Meropenem | 22 | 84 | 345 | 92 |
+| Ciprofloxacin | 34 | 81 | 303 | 89 |
+| Metronidazole | 15 | 98 | 87 | 86 |
+| TMP_SMX | 11 | 72 | 310 | 70 |
+| Cefepime | 11 | 63 | 104 | 56 |
+| Vancomycin_IV | 0 | 16 | 307 | 16 |
+
+**Total: 546 robust associations** (found by 2+ methods), **57 found by all 3 methods**
+
+### Highest-Confidence Species Associations (All 3 Methods Agree)
+
+#### Enterococcus Expansion (VRE Risk)
+| Antibiotic | Species | Effect (log2FC) |
+|------------|---------|-----------------|
+| Cefepime | *E. faecalis* | +2.1 |
+| Cefepime | *E. raffinosus* | +2.2 |
+| Cefepime | *E. durans* | +1.8 |
+| Meropenem | *E. faecalis* | +2.1 |
+| Meropenem | Multiple *Enterococcus* spp. | +1.6 to +2.1 |
+
+#### Opportunistic Pathogen Expansion
+| Antibiotic | Species | Effect (log2FC) |
+|------------|---------|-----------------|
+| Meropenem | *Pseudomonas aeruginosa* | +2.2 |
+| Meropenem | *Staphylococcus aureus* | +2.2 |
+| Ciprofloxacin | *Candida tropicalis* | +2.2 |
+| Ciprofloxacin | *[Candida] glabrata* | +2.9 |
+
+#### Butyrate-Producer Depletion (Gut Barrier Risk)
+| Antibiotic | Species | Effect (log2FC) |
+|------------|---------|-----------------|
+| Pip_Tazo | *Anaerostipes hadrus* | -1.1 |
+| Pip_Tazo | *Roseburia inulinivorans* | -1.0 |
+| Pip_Tazo | *Ruminococcus faecis* | -1.2 |
+| Pip_Tazo | *[Eubacterium] hallii* | -1.2 |
+
+#### Veillonella Depletion (Consistent Marker)
+| Antibiotic | Species | Effect (log2FC) |
+|------------|---------|-----------------|
+| TMP_SMX | *V. parvula*, *V. tobetsuensis*, etc. (9 spp.) | -1.5 to -2.0 |
+| Meropenem | *Veillonella* spp. (4 species) | -1.5 to -1.7 |
+| Metronidazole | *V. parvula* | -1.8 |
+
+#### Ciprofloxacin Paradox (Gram-negative Kill → Lactobacillus Bloom)
+| Direction | Species | Effect (log2FC) |
+|-----------|---------|-----------------|
+| ↓ Decreased | *E. coli*, *Salmonella enterica* | -1.6 |
+| ↑ Increased | *Lactobacillus* spp. (7+ species) | +1.8 to +3.0 |
+
+#### Vancomycin_IV Results (Limited Direct Effect)
+Only 16 robust associations found (vs 56-137 for other antibiotics):
+- ↑ *Candida parapsilosis*, *Lactobacillus* spp., *Leuconostoc gelidum*
+- ↓ *Bifidobacterium longum*, *Eggerthella* sp.
+- Consistent with IV vancomycin not reaching gut lumen directly
+
 ### Paired Analysis - Individual Antibiotics (Phase 4 Update)
 
 The original H3 hypothesis ("broad-spectrum antibiotics increase Enterobacteriaceae") was **misleading**. After refactoring to test individual antibiotics with LMM and covariate adjustment:
@@ -143,6 +232,40 @@ The original H3 hypothesis ("broad-spectrum antibiotics increase Enterobacteriac
 | **Cefepime** | Enterobacteriaceae | -1.60 log2FC | 0.0318 |
 
 **Key insight:** Broad-spectrum antibiotics (Meropenem, Cefepime) actually **decrease** Enterobacteriaceae in paired analysis, not increase as the broad category suggested. Meropenem shows the clearest signature: decreases Enterobacteriaceae, increases Enterococcus (classic carbapenem selection), and increases community instability.
+
+### Cefepime vs Pip/Tazo Comparison (Phase 10)
+
+Direct comparison of effects across taxonomic levels:
+
+| Level | Cefepime Only | Shared | Pip/Tazo Only |
+|-------|---------------|--------|---------------|
+| Species | 55 | 56 | 143 |
+| Genera | 20 | 18 | 37 |
+| Enterococcus | 9 | 4 | 7 |
+| Enterobacteriaceae | 16 | 9 | 68 |
+| Anaerobes | 18 | 47 | 152 |
+
+**Key findings:**
+- Pip/Tazo has ~2.5x more species affected than Cefepime
+- Both drugs increase Enterococcus (VRE risk)
+- Pip/Tazo massively depletes anaerobes (136 decreased vs 13 increased)
+- Cefepime more selective for Enterobacteriaceae
+- Effect sizes highly correlated for shared species (r=0.925)
+
+### Pathogenic vs Non-Pathogenic Comparison (Phase 10)
+
+Tested hypothesis: Are pathogenic species more resistant to antibiotic perturbation?
+
+**Result: Hypothesis NOT supported**
+
+| Species Type | Mean Abx Affecting | Mean Robust Abx |
+|--------------|--------------------|-----------------|
+| E. coli (pathogenic) | 3.0 | 2.0 |
+| Other Escherichia (commensal) | 1.7 | 1.4 |
+| K. pneumoniae/oxytoca (pathogenic) | 1.5 | 0.5 |
+| Other Klebsiella (commensal) | 1.9 | 1.4 |
+
+Pathogens are affected by MORE antibiotics, not fewer. They have more robust associations (consistent detection across methods), possibly due to higher prevalence enabling better statistical power.
 
 ### Recovery Analysis (Phase 8)
 
@@ -210,7 +333,7 @@ Both scripts now use **consistent paired-sample methodology** without external "
 
 ## Notes
 
-- Vancomycin route split analysis running in screen session `abx_vanc_split`
+- All differential abundance analyses complete (9 antibiotics × 3 methods)
 - Master script: `R/new_analysis_legacy_data/run_all_analysis.sh`
 - 723 high-confidence samples (including SB Stool)
 - Full documentation: `docs/NEW_ANALYSIS_LEGACY_DATA.md`

@@ -59,9 +59,10 @@ abx_categories <- list(
 )
 
 # Key individual antibiotics to track
+# Note: Vancomycin split by route - IV (no gut penetration) vs PO (stays in gut lumen)
 key_antibiotics <- c(
-  "Pip/Tazo", "Meropenem", "Cefepime", "Vancomycin", "Metronidazole",
-  "Ceftriaxone", "Ciprofloxacin", "Clindamycin", "Azithromycin", "TMP/SMX"
+  "Pip/Tazo", "Meropenem", "Cefepime", "Vancomycin_IV", "Vancomycin_PO",
+  "Metronidazole", "Ceftriaxone", "Ciprofloxacin", "Clindamycin", "Azithromycin", "TMP/SMX"
 )
 
 # =============================================================================
@@ -78,6 +79,24 @@ DrugTable_systemic <- DrugTable %>%
 
 cat("Systemic antibiotic administrations:", nrow(DrugTable_systemic), "\n")
 cat("Unique drugs:", length(unique(DrugTable_systemic$Drug)), "\n")
+
+# =============================================================================
+# 3b. Create Route-Specific Vancomycin Tables
+# =============================================================================
+# Vancomycin is special: IV does NOT reach gut lumen, PO stays IN gut lumen
+# These have opposite effects on gut microbiome, so we split them
+
+DrugTable_vanc_IV <- DrugTable %>%
+  filter(Drug == "Vancomycin", Route == "IV") %>%
+  mutate(Date = as.Date(Date))
+
+DrugTable_vanc_PO <- DrugTable %>%
+  filter(Drug == "Vancomycin", Route == "PO") %>%
+  mutate(Date = as.Date(Date))
+
+cat("\nVancomycin by route:\n")
+cat("  IV administrations:", nrow(DrugTable_vanc_IV), "\n")
+cat("  PO administrations:", nrow(DrugTable_vanc_PO), "\n")
 
 # =============================================================================
 # 4. Create Sample Metadata with Antibiotic Exposure Variables
@@ -171,14 +190,50 @@ sample_metadata <- exposure_7d %>%
 # Add individual key antibiotic exposures (7-day)
 cat("Calculating individual antibiotic exposures...\n")
 
+# Function to calculate route-specific vancomycin exposure
+calc_vanc_route_exposure <- function(mrn, sample_date, drug_table, window_days = 7) {
+  start_date <- sample_date - window_days
+  end_date <- sample_date - 1
+
+  drugs_in_window <- drug_table %>%
+    filter(MRN == mrn, Date >= start_date, Date <= end_date)
+
+  nrow(drugs_in_window) > 0
+}
+
 for (abx in key_antibiotics) {
   col_name <- paste0(gsub("/", "_", abx), "_7d")
 
-  sample_metadata <- sample_metadata %>%
-    mutate(
-      !!col_name := map_lgl(drugs_7d, ~ grepl(abx, .x, fixed = TRUE))
+  if (abx == "Vancomycin_IV") {
+    # Calculate IV vancomycin exposure from route-specific table
+    sample_metadata[[col_name]] <- mapply(
+      calc_vanc_route_exposure,
+      sample_metadata$MRN,
+      sample_metadata$SampleDate,
+      MoreArgs = list(drug_table = DrugTable_vanc_IV, window_days = 7)
     )
+  } else if (abx == "Vancomycin_PO") {
+    # Calculate PO vancomycin exposure from route-specific table
+    sample_metadata[[col_name]] <- mapply(
+      calc_vanc_route_exposure,
+      sample_metadata$MRN,
+      sample_metadata$SampleDate,
+      MoreArgs = list(drug_table = DrugTable_vanc_PO, window_days = 7)
+    )
+  } else {
+    # Standard grep-based approach for other antibiotics
+    sample_metadata <- sample_metadata %>%
+      mutate(
+        !!col_name := map_lgl(drugs_7d, ~ grepl(gsub("_", "/", abx), .x, fixed = TRUE))
+      )
+  }
 }
+
+# Summary of vancomycin route-specific exposures
+cat("\nVancomycin exposure summary:\n")
+cat("  Vancomycin_IV_7d:", sum(sample_metadata$Vancomycin_IV_7d), "samples\n")
+cat("  Vancomycin_PO_7d:", sum(sample_metadata$Vancomycin_PO_7d), "samples\n")
+cat("  Both IV and PO:", sum(sample_metadata$Vancomycin_IV_7d & sample_metadata$Vancomycin_PO_7d), "samples\n")
 
 # =============================================================================
 # 5. Prepare Species and Genus Abundance Matrices
@@ -349,30 +404,67 @@ paired_samples <- TwoWeekSamplePairs %>%
          date1, date2, interval_days)
 
 # Calculate antibiotic exposure BETWEEN paired samples
-calculate_between_exposure <- function(mrn, date1, date2, drug_data) {
+# Now includes individual antibiotic exposures (days of exposure) for granular analysis
+calculate_between_exposure <- function(mrn, date1, date2, drug_data,
+                                        vanc_iv_data, vanc_po_data) {
 
   drugs_between <- drug_data %>%
     filter(MRN == mrn, Date > date1, Date < date2)
 
+  # Route-specific vancomycin
+  vanc_iv_between <- vanc_iv_data %>%
+    filter(MRN == mrn, Date > date1, Date < date2)
+  vanc_po_between <- vanc_po_data %>%
+    filter(MRN == mrn, Date > date1, Date < date2)
+
   if (nrow(drugs_between) == 0) {
-    return(list(
+    result <- list(
       abx_between_any = FALSE,
       abx_between_days = 0,
       abx_between_anaerobic = FALSE,
       abx_between_broad = FALSE,
-      drugs_between = ""
-    ))
+      drugs_between = "",
+      # Individual antibiotics (days of exposure)
+      Pip_Tazo_between = 0,
+      Meropenem_between = 0,
+      Cefepime_between = 0,
+      Ceftriaxone_between = 0,
+      Ciprofloxacin_between = 0,
+      Metronidazole_between = 0,
+      Clindamycin_between = 0,
+      TMP_SMX_between = 0,
+      Vancomycin_IV_between = 0,
+      Vancomycin_PO_between = 0
+    )
+    return(result)
   }
 
   unique_drugs <- unique(drugs_between$Drug)
   abx_days <- length(unique(drugs_between$Date))
+
+  # Calculate days of exposure for each individual antibiotic
+  calc_drug_days <- function(drug_pattern) {
+    matching <- drugs_between %>% filter(grepl(drug_pattern, Drug, fixed = TRUE))
+    length(unique(matching$Date))
+  }
 
   list(
     abx_between_any = TRUE,
     abx_between_days = abx_days,
     abx_between_anaerobic = any(unique_drugs %in% abx_categories$anti_anaerobic),
     abx_between_broad = any(unique_drugs %in% abx_categories$broad_spectrum),
-    drugs_between = paste(unique_drugs, collapse = "; ")
+    drugs_between = paste(unique_drugs, collapse = "; "),
+    # Individual antibiotics (days of exposure between samples)
+    Pip_Tazo_between = calc_drug_days("Pip/Tazo"),
+    Meropenem_between = calc_drug_days("Meropenem"),
+    Cefepime_between = calc_drug_days("Cefepime"),
+    Ceftriaxone_between = calc_drug_days("Ceftriaxone"),
+    Ciprofloxacin_between = calc_drug_days("Ciprofloxacin"),
+    Metronidazole_between = calc_drug_days("Metronidazole"),
+    Clindamycin_between = calc_drug_days("Clindamycin"),
+    TMP_SMX_between = calc_drug_days("TMP/SMX"),
+    Vancomycin_IV_between = length(unique(vanc_iv_between$Date)),
+    Vancomycin_PO_between = length(unique(vanc_po_between$Date))
   )
 }
 
@@ -381,17 +473,42 @@ cat("Calculating between-sample antibiotic exposure for pairs...\n")
 paired_samples <- paired_samples %>%
   rowwise() %>%
   mutate(
-    exposure = list(calculate_between_exposure(MRN, date1, date2, DrugTable_systemic))
+    exposure = list(calculate_between_exposure(
+      MRN, date1, date2, DrugTable_systemic, DrugTable_vanc_IV, DrugTable_vanc_PO
+    ))
   ) %>%
   ungroup() %>%
   mutate(
+    # Legacy category-based exposures (kept for backwards compatibility)
     abx_between_any = map_lgl(exposure, ~ .x$abx_between_any),
     abx_between_days = map_dbl(exposure, ~ .x$abx_between_days),
     abx_between_anaerobic = map_lgl(exposure, ~ .x$abx_between_anaerobic),
     abx_between_broad = map_lgl(exposure, ~ .x$abx_between_broad),
-    drugs_between = map_chr(exposure, ~ .x$drugs_between)
+    drugs_between = map_chr(exposure, ~ .x$drugs_between),
+    # Individual antibiotic exposures (days between samples)
+    Pip_Tazo_between = map_dbl(exposure, ~ .x$Pip_Tazo_between),
+    Meropenem_between = map_dbl(exposure, ~ .x$Meropenem_between),
+    Cefepime_between = map_dbl(exposure, ~ .x$Cefepime_between),
+    Ceftriaxone_between = map_dbl(exposure, ~ .x$Ceftriaxone_between),
+    Ciprofloxacin_between = map_dbl(exposure, ~ .x$Ciprofloxacin_between),
+    Metronidazole_between = map_dbl(exposure, ~ .x$Metronidazole_between),
+    Clindamycin_between = map_dbl(exposure, ~ .x$Clindamycin_between),
+    TMP_SMX_between = map_dbl(exposure, ~ .x$TMP_SMX_between),
+    Vancomycin_IV_between = map_dbl(exposure, ~ .x$Vancomycin_IV_between),
+    Vancomycin_PO_between = map_dbl(exposure, ~ .x$Vancomycin_PO_between)
   ) %>%
   select(-exposure)
+
+# Print summary of individual antibiotic exposures between pairs
+cat("\nIndividual antibiotic exposures between paired samples:\n")
+indiv_abx <- c("Pip_Tazo", "Meropenem", "Cefepime", "Ceftriaxone", "Ciprofloxacin",
+               "Metronidazole", "Clindamycin", "TMP_SMX", "Vancomycin_IV", "Vancomycin_PO")
+for (abx in indiv_abx) {
+  col <- paste0(abx, "_between")
+  n_exposed <- sum(paired_samples[[col]] > 0)
+  cat(sprintf("  %s: %d pairs (%.1f%%)\n", abx, n_exposed,
+              100 * n_exposed / nrow(paired_samples)))
+}
 
 # Add high-confidence flag
 paired_samples <- paired_samples %>%

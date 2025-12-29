@@ -57,7 +57,8 @@ cat("  Species matrix:", nrow(species_matrix), "samples x", ncol(species_matrix)
 cat("  Sample metadata:", nrow(sample_metadata), "samples\n\n")
 
 # Top antibiotics to analyze (using columns available in prepared_data)
-top_antibiotics <- c("Pip_Tazo", "TMP_SMX", "Vancomycin", "Cefepime",
+# Note: Vancomycin split by route - IV (no gut penetration) vs PO (stays in gut lumen)
+top_antibiotics <- c("Pip_Tazo", "TMP_SMX", "Vancomycin_IV", "Vancomycin_PO", "Cefepime",
                      "Meropenem", "Ciprofloxacin", "Metronidazole",
                      "Ceftriaxone", "Clindamycin")
 # Note: Azithromycin excluded (too few exposures), Cefazolin not in prepared_data

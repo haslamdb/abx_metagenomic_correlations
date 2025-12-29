@@ -1,7 +1,8 @@
 #!/usr/bin/env Rscript
 # =============================================================================
 # 04_paired_sample_analysis.R
-# Paired sample analysis - within-patient changes with antibiotic exposure
+# Paired sample analysis - within-patient changes with INDIVIDUAL antibiotic exposure
+# Uses LMM with covariate adjustment for other antibiotics
 # =============================================================================
 
 library(tidyverse)
@@ -14,6 +15,9 @@ library(broom.mixed)
 project_dir <- "/home/david/projects/abx_metagenomic_correlations"
 results_dir <- file.path(project_dir, "results/new_analysis_legacy_data")
 figures_dir <- file.path(results_dir, "figures")
+paired_dir <- file.path(results_dir, "paired_analysis")
+
+dir.create(paired_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Load data
 load(file.path(project_dir, "data/bracken_count_matrices.RData"))  # Raw Bracken counts
@@ -24,6 +28,12 @@ species_matrix <- bracken_data$species_matrix  # Use raw Bracken counts
 genus_matrix <- bracken_data$genus_matrix      # Use raw Bracken counts
 paired_samples <- prepared_data$paired_samples
 high_confidence_groups <- prepared_data$high_confidence_groups
+
+# Define individual antibiotics to analyze (matching script 05)
+individual_antibiotics <- c(
+  "Pip_Tazo", "Meropenem", "Cefepime", "Ceftriaxone", "Ciprofloxacin",
+  "Metronidazole", "Clindamycin", "TMP_SMX", "Vancomycin_IV", "Vancomycin_PO"
+)
 
 # Filter to overlapping samples
 common_samples <- intersect(sample_metadata$sample_id, rownames(species_matrix))
@@ -44,13 +54,13 @@ cat("  Genus:", nrow(genus_matrix), "samples x", ncol(genus_matrix), "genera\n\n
 # =============================================================================
 
 cat("=" %>% rep(60) %>% paste(collapse = ""), "\n")
-cat("PAIRED SAMPLE ANALYSIS\n")
+cat("PAIRED SAMPLE ANALYSIS - INDIVIDUAL ANTIBIOTICS\n")
 cat("=" %>% rep(60) %>% paste(collapse = ""), "\n\n")
 
 # Filter to high-confidence pairs
 paired_hc <- paired_samples %>% filter(high_confidence)
 cat("High-confidence sample pairs:", nrow(paired_hc), "\n")
-cat("Pairs with Abx between samples:", sum(paired_hc$abx_between_any), "\n\n")
+cat("Pairs with any Abx between samples:", sum(paired_hc$abx_between_any), "\n\n")
 
 # Get diversity and functional group data
 diversity_data <- sample_metadata %>%
@@ -104,388 +114,335 @@ paired_results <- bind_rows(pair_metrics_list)
 cat("Pairs with complete data:", nrow(paired_results), "\n\n")
 
 # =============================================================================
-# 2. Hypothesis Tests
+# 2. Summary of Individual Antibiotic Exposures
 # =============================================================================
 
-cat("=== Statistical Tests ===\n\n")
+cat("=== Individual Antibiotic Exposure Summary ===\n\n")
 
-# -----------------------------------------------------------------------------
-# H1: Antibiotics reduce diversity (Shannon)
-# -----------------------------------------------------------------------------
-
-cat("H1: Antibiotic exposure reduces diversity change\n")
-cat("   (More negative delta_shannon with Abx exposure)\n\n")
-
-# Wilcoxon test
-h1_wilcox <- wilcox.test(
-  delta_shannon ~ abx_between_any,
-  data = paired_results,
-  alternative = "less"
+exposure_summary <- data.frame(
+  antibiotic = individual_antibiotics,
+  n_pairs_exposed = sapply(individual_antibiotics, function(abx) {
+    col <- paste0(abx, "_between")
+    if (col %in% colnames(paired_results)) {
+      sum(paired_results[[col]] > 0)
+    } else {
+      NA
+    }
+  }),
+  n_pairs_unexposed = sapply(individual_antibiotics, function(abx) {
+    col <- paste0(abx, "_between")
+    if (col %in% colnames(paired_results)) {
+      sum(paired_results[[col]] == 0)
+    } else {
+      NA
+    }
+  })
 )
-
-cat("Wilcoxon test: delta_shannon by Abx exposure\n")
-cat("  Median (no Abx):", median(paired_results$delta_shannon[!paired_results$abx_between_any]), "\n")
-cat("  Median (Abx):", median(paired_results$delta_shannon[paired_results$abx_between_any]), "\n")
-cat("  p-value:", format.pval(h1_wilcox$p.value), "\n\n")
-
-# Mixed-effects model
-h1_model <- lmer(
-  delta_shannon ~ abx_between_any + interval_days + (1|MRN),
-  data = paired_results
-)
-cat("Mixed-effects model: delta_shannon ~ Abx + interval + (1|patient)\n")
-print(tidy(h1_model, effects = "fixed", conf.int = TRUE) %>%
-        mutate(across(where(is.numeric), ~ round(.x, 4))))
-
-# -----------------------------------------------------------------------------
-# H2: Anti-anaerobic antibiotics reduce anaerobe abundance
-# -----------------------------------------------------------------------------
-
-cat("\n\nH2: Anti-anaerobic antibiotics reduce anaerobe abundance\n")
-cat("   (More negative delta_anaerobes with anti-anaerobic Abx)\n\n")
-
-h2_wilcox <- wilcox.test(
-  delta_anaerobes ~ abx_between_anaerobic,
-  data = paired_results,
-  alternative = "less"
-)
-
-cat("Wilcoxon test: delta_anaerobes (log2FC) by anti-anaerobic Abx\n")
-cat("  Median (no anti-anaerobic):", round(median(paired_results$delta_anaerobes[!paired_results$abx_between_anaerobic]), 3), "\n")
-cat("  Median (anti-anaerobic):", round(median(paired_results$delta_anaerobes[paired_results$abx_between_anaerobic]), 3), "\n")
-cat("  p-value:", format.pval(h2_wilcox$p.value), "\n\n")
-
-h2_model <- lmer(
-  delta_anaerobes ~ abx_between_anaerobic + interval_days + (1|MRN),
-  data = paired_results
-)
-cat("Mixed-effects model: delta_anaerobes ~ anti-anaerobic Abx + interval + (1|patient)\n")
-print(tidy(h2_model, effects = "fixed", conf.int = TRUE) %>%
-        mutate(across(where(is.numeric), ~ round(.x, 4))))
-
-# -----------------------------------------------------------------------------
-# H3: Broad-spectrum antibiotics increase Enterobacteriaceae
-# -----------------------------------------------------------------------------
-
-cat("\n\nH3: Broad-spectrum antibiotics increase Enterobacteriaceae\n")
-cat("   (More positive delta_enterobact with broad-spectrum Abx)\n\n")
-
-h3_wilcox <- wilcox.test(
-  delta_enterobact ~ abx_between_broad,
-  data = paired_results,
-  alternative = "greater"
-)
-
-cat("Wilcoxon test: delta_enterobact (log2FC) by broad-spectrum Abx\n")
-cat("  Median (no broad):", round(median(paired_results$delta_enterobact[!paired_results$abx_between_broad]), 3), "\n")
-cat("  Median (broad):", round(median(paired_results$delta_enterobact[paired_results$abx_between_broad]), 3), "\n")
-cat("  p-value:", format.pval(h3_wilcox$p.value), "\n\n")
-
-h3_model <- lmer(
-  delta_enterobact ~ abx_between_broad + interval_days + (1|MRN),
-  data = paired_results
-)
-cat("Mixed-effects model: delta_enterobact ~ broad-spectrum Abx + interval + (1|patient)\n")
-print(tidy(h3_model, effects = "fixed", conf.int = TRUE) %>%
-        mutate(across(where(is.numeric), ~ round(.x, 4))))
-
-# -----------------------------------------------------------------------------
-# H4: Antibiotics increase community instability (Bray-Curtis distance)
-# -----------------------------------------------------------------------------
-
-cat("\n\nH4: Antibiotic exposure increases community instability\n")
-cat("   (Higher Bray-Curtis distance with Abx exposure)\n\n")
-
-h4_wilcox <- wilcox.test(
-  bray_distance ~ abx_between_any,
-  data = paired_results,
-  alternative = "greater"
-)
-
-cat("Wilcoxon test: Bray-Curtis distance by Abx exposure\n")
-cat("  Median (no Abx):", round(median(paired_results$bray_distance[!paired_results$abx_between_any]), 3), "\n")
-cat("  Median (Abx):", round(median(paired_results$bray_distance[paired_results$abx_between_any]), 3), "\n")
-cat("  p-value:", format.pval(h4_wilcox$p.value), "\n\n")
-
-h4_model <- lmer(
-  bray_distance ~ abx_between_any + interval_days + (1|MRN),
-  data = paired_results
-)
-cat("Mixed-effects model: Bray-Curtis ~ Abx + interval + (1|patient)\n")
-print(tidy(h4_model, effects = "fixed", conf.int = TRUE) %>%
-        mutate(across(where(is.numeric), ~ round(.x, 4))))
-
-# -----------------------------------------------------------------------------
-# H5: Dose-response relationship
-# -----------------------------------------------------------------------------
-
-cat("\n\nH5: Dose-response relationship (antibiotic-days)\n\n")
-
-# Only for pairs with antibiotic exposure
-exposed_pairs <- paired_results %>% filter(abx_between_any)
-
-h5_cor_shannon <- cor.test(
-  exposed_pairs$abx_between_days,
-  exposed_pairs$delta_shannon,
-  method = "spearman"
-)
-
-cat("Spearman correlation: Abx-days vs delta_shannon (exposed pairs only)\n")
-cat("  rho:", round(h5_cor_shannon$estimate, 3), "\n")
-cat("  p-value:", format.pval(h5_cor_shannon$p.value), "\n\n")
-
-h5_cor_bray <- cor.test(
-  exposed_pairs$abx_between_days,
-  exposed_pairs$bray_distance,
-  method = "spearman"
-)
-
-cat("Spearman correlation: Abx-days vs Bray-Curtis distance\n")
-cat("  rho:", round(h5_cor_bray$estimate, 3), "\n")
-cat("  p-value:", format.pval(h5_cor_bray$p.value), "\n")
+exposure_summary$pct_exposed <- round(100 * exposure_summary$n_pairs_exposed /
+                                        nrow(paired_results), 1)
+print(exposure_summary)
 
 # =============================================================================
-# 3. Generate Plots
+# 3. LMM Analysis for Each Individual Antibiotic
+# =============================================================================
+
+cat("\n=== LMM Analysis: Individual Antibiotic Effects ===\n")
+cat("Model: outcome ~ target_abx + other_abx_covariates + interval_days + (1|MRN)\n\n")
+
+# Define outcomes to test
+outcomes <- c("delta_shannon", "delta_anaerobes", "delta_enterobact",
+              "delta_enterococcus", "bray_distance")
+
+outcome_labels <- c(
+  delta_shannon = "Shannon Diversity Change",
+  delta_anaerobes = "Anaerobes (log2FC)",
+  delta_enterobact = "Enterobacteriaceae (log2FC)",
+  delta_enterococcus = "Enterococcus (log2FC)",
+  bray_distance = "Bray-Curtis Distance"
+)
+
+# Store all results
+all_lmm_results <- list()
+
+for (abx in individual_antibiotics) {
+
+  target_col <- paste0(abx, "_between")
+
+  # Check if column exists and has variation
+  if (!target_col %in% colnames(paired_results)) {
+    cat("Skipping", abx, "- column not found\n")
+    next
+  }
+
+  n_exposed <- sum(paired_results[[target_col]] > 0)
+  n_unexposed <- sum(paired_results[[target_col]] == 0)
+
+  cat("=== ", abx, " ===\n", sep = "")
+  cat("  Exposed pairs:", n_exposed, ", Unexposed:", n_unexposed, "\n")
+
+  # Skip if too few exposed
+  if (n_exposed < 5) {
+    cat("  Skipping - too few exposed pairs\n\n")
+    next
+  }
+
+  # Define covariates: other antibiotics + interval
+  other_abx <- setdiff(individual_antibiotics, abx)
+  other_cols <- paste0(other_abx, "_between")
+  other_cols <- other_cols[other_cols %in% colnames(paired_results)]
+
+  # Create binary exposure variable for target (exposed vs not)
+  paired_results[[paste0(abx, "_exposed")]] <- paired_results[[target_col]] > 0
+
+  # Test each outcome
+  abx_results <- list()
+
+  for (outcome in outcomes) {
+
+    # Build formula with covariates
+    # Use binary exposure for target, continuous (days) for others
+    covariate_terms <- paste(other_cols, collapse = " + ")
+    formula_str <- paste0(outcome, " ~ ", abx, "_exposed + ", covariate_terms,
+                          " + interval_days + (1|MRN)")
+
+    tryCatch({
+      model <- lmer(as.formula(formula_str), data = paired_results,
+                    control = lmerControl(optimizer = "bobyqa"))
+
+      # Extract results for target antibiotic
+      model_summary <- tidy(model, effects = "fixed", conf.int = TRUE) %>%
+        filter(grepl(paste0(abx, "_exposed"), term))
+
+      if (nrow(model_summary) > 0) {
+        abx_results[[outcome]] <- model_summary %>%
+          mutate(
+            antibiotic = abx,
+            outcome = outcome,
+            outcome_label = outcome_labels[outcome],
+            n_exposed = n_exposed,
+            n_unexposed = n_unexposed
+          )
+      }
+    }, error = function(e) {
+      cat("    ", outcome, ": Model failed -", conditionMessage(e), "\n")
+    })
+  }
+
+  if (length(abx_results) > 0) {
+    all_lmm_results[[abx]] <- bind_rows(abx_results)
+
+    # Print summary for this antibiotic
+    cat("\n  Results (estimate = effect of exposure on outcome):\n")
+    summary_df <- bind_rows(abx_results) %>%
+      select(outcome_label, estimate, std.error, p.value) %>%
+      mutate(
+        sig = case_when(
+          p.value < 0.01 ~ "**",
+          p.value < 0.05 ~ "*",
+          p.value < 0.1 ~ ".",
+          TRUE ~ ""
+        )
+      )
+    for (i in 1:nrow(summary_df)) {
+      cat(sprintf("    %-25s: est = %7.3f, SE = %.3f, p = %.4f %s\n",
+                  summary_df$outcome_label[i],
+                  summary_df$estimate[i],
+                  summary_df$std.error[i],
+                  summary_df$p.value[i],
+                  summary_df$sig[i]))
+    }
+  }
+
+  cat("\n")
+}
+
+# Combine all results
+combined_results <- bind_rows(all_lmm_results)
+
+# =============================================================================
+# 4. Summary Table: Significant Findings
+# =============================================================================
+
+cat("\n=== Summary: Significant Findings (p < 0.05) ===\n\n")
+
+significant_results <- combined_results %>%
+  filter(p.value < 0.05) %>%
+  arrange(p.value) %>%
+  select(antibiotic, outcome_label, estimate, std.error, conf.low, conf.high, p.value)
+
+if (nrow(significant_results) > 0) {
+  print(as.data.frame(significant_results))
+} else {
+  cat("No significant findings at p < 0.05\n")
+}
+
+cat("\n=== Marginal Findings (0.05 <= p < 0.1) ===\n\n")
+
+marginal_results <- combined_results %>%
+  filter(p.value >= 0.05 & p.value < 0.1) %>%
+  arrange(p.value) %>%
+  select(antibiotic, outcome_label, estimate, std.error, p.value)
+
+if (nrow(marginal_results) > 0) {
+  print(as.data.frame(marginal_results))
+} else {
+  cat("No marginal findings\n")
+}
+
+# =============================================================================
+# 5. Generate Plots
 # =============================================================================
 
 cat("\n=== Generating Plots ===\n\n")
 
-# -----------------------------------------------------------------------------
-# 3.1 Paired Trajectory Plots
-# -----------------------------------------------------------------------------
-
-# Shannon diversity change
-p_shannon <- ggplot(paired_results, aes(x = abx_between_any, y = delta_shannon, fill = abx_between_any)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 1.5) +
-  scale_fill_manual(
-    values = c("FALSE" = "#4575b4", "TRUE" = "#d73027"),
-    labels = c("FALSE" = "No Abx", "TRUE" = "Abx between samples")
-  ) +
-  labs(
-    title = "Change in Shannon Diversity Between Paired Samples",
-    subtitle = paste("n =", nrow(paired_results), "pairs from high-confidence patient groups"),
-    x = "Antibiotic Exposure Between Samples",
-    y = "Change in Shannon Diversity (Sample 2 - Sample 1)",
-    fill = NULL
-  ) +
-  theme_bw() +
-  theme(legend.position = "bottom")
-
-ggsave(file.path(figures_dir, "paired_delta_shannon.pdf"), p_shannon,
-       width = 6, height = 5)
-cat("Saved: figures/paired_delta_shannon.pdf\n")
-
-# Anaerobe change by anti-anaerobic exposure
-p_anaerobes <- ggplot(paired_results, aes(x = abx_between_anaerobic, y = delta_anaerobes, fill = abx_between_anaerobic)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 1.5) +
-  scale_fill_manual(
-    values = c("FALSE" = "#4575b4", "TRUE" = "#d73027"),
-    labels = c("FALSE" = "No anti-anaerobic", "TRUE" = "Anti-anaerobic Abx")
-  ) +
-  labs(
-    title = "Change in Obligate Anaerobe Abundance",
-    subtitle = "By anti-anaerobic antibiotic exposure between samples",
-    x = "Anti-anaerobic Antibiotic Exposure",
-    y = "Log2 Fold Change in Anaerobe Abundance",
-    fill = NULL
-  ) +
-  theme_bw() +
-  theme(legend.position = "bottom")
-
-ggsave(file.path(figures_dir, "paired_delta_anaerobes.pdf"), p_anaerobes,
-       width = 6, height = 5)
-cat("Saved: figures/paired_delta_anaerobes.pdf\n")
-
-# Bray-Curtis distance
-p_bray <- ggplot(paired_results, aes(x = abx_between_any, y = bray_distance, fill = abx_between_any)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 1.5) +
-  scale_fill_manual(
-    values = c("FALSE" = "#4575b4", "TRUE" = "#d73027"),
-    labels = c("FALSE" = "No Abx", "TRUE" = "Abx between samples")
-  ) +
-  labs(
-    title = "Community Stability: Bray-Curtis Distance Between Paired Samples",
-    subtitle = "Higher values indicate more change between samples",
-    x = "Antibiotic Exposure Between Samples",
-    y = "Bray-Curtis Distance",
-    fill = NULL
-  ) +
-  theme_bw() +
-  theme(legend.position = "bottom")
-
-ggsave(file.path(figures_dir, "paired_bray_curtis.pdf"), p_bray,
-       width = 6, height = 5)
-cat("Saved: figures/paired_bray_curtis.pdf\n")
-
-# -----------------------------------------------------------------------------
-# 3.2 Dose-Response Plot
-# -----------------------------------------------------------------------------
-
-p_dose <- ggplot(exposed_pairs, aes(x = abx_between_days, y = bray_distance)) +
-  geom_point(alpha = 0.6, size = 2, color = "#d73027") +
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
-  labs(
-    title = "Dose-Response: Antibiotic Days vs Community Change",
-    subtitle = paste("Spearman rho =", round(h5_cor_bray$estimate, 3),
-                     ", p =", format.pval(h5_cor_bray$p.value)),
-    x = "Antibiotic Days Between Samples",
-    y = "Bray-Curtis Distance"
-  ) +
-  theme_bw()
-
-ggsave(file.path(figures_dir, "dose_response_bray.pdf"), p_dose,
-       width = 6, height = 5)
-cat("Saved: figures/dose_response_bray.pdf\n")
-
-# -----------------------------------------------------------------------------
-# 3.3 Combined Panel Plot
-# -----------------------------------------------------------------------------
-
-# Faceted plot of all metrics
-metrics_long <- paired_results %>%
-  select(PairNumber, abx_between_any, delta_shannon, delta_anaerobes, delta_enterobact, bray_distance) %>%
-  pivot_longer(
-    cols = c(delta_shannon, delta_anaerobes, delta_enterobact, bray_distance),
-    names_to = "metric",
-    values_to = "value"
-  ) %>%
+# 5.1 Forest plot of antibiotic effects on Shannon diversity
+shannon_results <- combined_results %>%
+  filter(outcome == "delta_shannon") %>%
   mutate(
-    metric = case_when(
-      metric == "delta_shannon" ~ "Shannon Diversity Change",
-      metric == "delta_anaerobes" ~ "Anaerobes (log2FC)",
-      metric == "delta_enterobact" ~ "Enterobacteriaceae (log2FC)",
-      metric == "bray_distance" ~ "Bray-Curtis Distance"
-    ),
-    metric = factor(metric, levels = c(
-      "Shannon Diversity Change", "Anaerobes (log2FC)",
-      "Enterobacteriaceae (log2FC)", "Bray-Curtis Distance"
-    ))
+    antibiotic = factor(antibiotic, levels = rev(individual_antibiotics)),
+    significant = p.value < 0.05
   )
 
-p_panel <- ggplot(metrics_long, aes(x = abx_between_any, y = value, fill = abx_between_any)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.15, alpha = 0.3, size = 0.8) +
-  facet_wrap(~ metric, scales = "free_y", nrow = 1) +
-  scale_fill_manual(
-    values = c("FALSE" = "#4575b4", "TRUE" = "#d73027"),
-    labels = c("FALSE" = "No Abx", "TRUE" = "Abx")
-  ) +
-  labs(
-    title = "Paired Sample Analysis: Microbiome Changes by Antibiotic Exposure",
-    subtitle = paste("n =", nrow(paired_results), "high-confidence sample pairs"),
-    x = "Antibiotic Exposure Between Samples",
-    y = "Metric Value",
-    fill = NULL
-  ) +
-  theme_bw() +
-  theme(
-    legend.position = "bottom",
-    strip.background = element_rect(fill = "gray90"),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank()
+if (nrow(shannon_results) > 0) {
+  p_forest_shannon <- ggplot(shannon_results, aes(x = estimate, y = antibiotic)) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
+    geom_point(aes(color = significant), size = 3) +
+    scale_color_manual(values = c("FALSE" = "gray40", "TRUE" = "#d73027"),
+                       labels = c("FALSE" = "p >= 0.05", "TRUE" = "p < 0.05")) +
+    labs(
+      title = "Effect of Individual Antibiotics on Shannon Diversity Change",
+      subtitle = "LMM with covariate adjustment for other antibiotics",
+      x = "Estimated Effect on Delta Shannon (95% CI)",
+      y = NULL,
+      color = "Significance"
+    ) +
+    theme_bw() +
+    theme(legend.position = "bottom")
+
+  ggsave(file.path(figures_dir, "paired_individual_abx_shannon.pdf"), p_forest_shannon,
+         width = 8, height = 6)
+  cat("Saved: figures/paired_individual_abx_shannon.pdf\n")
+}
+
+# 5.2 Forest plot for Enterobacteriaceae
+enterobact_results <- combined_results %>%
+  filter(outcome == "delta_enterobact") %>%
+  mutate(
+    antibiotic = factor(antibiotic, levels = rev(individual_antibiotics)),
+    significant = p.value < 0.05
   )
 
-ggsave(file.path(figures_dir, "paired_analysis_panel.pdf"), p_panel,
-       width = 12, height = 4)
-cat("Saved: figures/paired_analysis_panel.pdf\n")
+if (nrow(enterobact_results) > 0) {
+  p_forest_enterobact <- ggplot(enterobact_results, aes(x = estimate, y = antibiotic)) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
+    geom_point(aes(color = significant), size = 3) +
+    scale_color_manual(values = c("FALSE" = "gray40", "TRUE" = "#d73027"),
+                       labels = c("FALSE" = "p >= 0.05", "TRUE" = "p < 0.05")) +
+    labs(
+      title = "Effect of Individual Antibiotics on Enterobacteriaceae Change",
+      subtitle = "LMM with covariate adjustment for other antibiotics",
+      x = "Estimated Effect on Enterobacteriaceae log2FC (95% CI)",
+      y = NULL,
+      color = "Significance"
+    ) +
+    theme_bw() +
+    theme(legend.position = "bottom")
+
+  ggsave(file.path(figures_dir, "paired_individual_abx_enterobact.pdf"), p_forest_enterobact,
+         width = 8, height = 6)
+  cat("Saved: figures/paired_individual_abx_enterobact.pdf\n")
+}
+
+# 5.3 Heatmap of all effects
+if (nrow(combined_results) > 0) {
+  heatmap_data <- combined_results %>%
+    mutate(
+      sig_label = case_when(
+        p.value < 0.01 ~ "**",
+        p.value < 0.05 ~ "*",
+        p.value < 0.1 ~ ".",
+        TRUE ~ ""
+      )
+    ) %>%
+    select(antibiotic, outcome_label, estimate, sig_label)
+
+  p_heatmap <- ggplot(heatmap_data, aes(x = outcome_label, y = antibiotic, fill = estimate)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = sig_label), size = 4, color = "black") +
+    scale_fill_gradient2(
+      low = "#2166ac", mid = "white", high = "#b2182b",
+      midpoint = 0,
+      name = "Effect\nEstimate"
+    ) +
+    labs(
+      title = "Individual Antibiotic Effects on Microbiome Outcomes",
+      subtitle = "Paired sample analysis with LMM (* p<0.05, ** p<0.01, . p<0.1)",
+      x = NULL,
+      y = NULL
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid = element_blank()
+    )
+
+  ggsave(file.path(figures_dir, "paired_individual_abx_heatmap.pdf"), p_heatmap,
+         width = 10, height = 7)
+  cat("Saved: figures/paired_individual_abx_heatmap.pdf\n")
+}
 
 # =============================================================================
-# 4. Analysis by Patient Group
-# =============================================================================
-
-cat("\n=== Analysis by Patient Group ===\n\n")
-
-group_summary <- paired_results %>%
-  group_by(PatientGroup, abx_between_any) %>%
-  summarise(
-    n_pairs = n(),
-    median_delta_shannon = median(delta_shannon),
-    median_delta_anaerobes = median(delta_anaerobes),
-    median_bray = median(bray_distance),
-    .groups = "drop"
-  )
-
-print(group_summary)
-
-# =============================================================================
-# 5. Save Results
+# 6. Save Results
 # =============================================================================
 
 cat("\n=== Saving Results ===\n\n")
 
-# Save paired sample metrics
-write_csv(paired_results, file.path(results_dir, "paired_analysis/paired_sample_metrics.csv"))
+# Save full results
+write_csv(combined_results, file.path(paired_dir, "individual_abx_lmm_results.csv"))
+cat("Saved: paired_analysis/individual_abx_lmm_results.csv\n")
+
+# Save significant results
+write_csv(significant_results, file.path(paired_dir, "individual_abx_significant.csv"))
+cat("Saved: paired_analysis/individual_abx_significant.csv\n")
+
+# Save paired sample metrics with individual exposures
+write_csv(paired_results, file.path(paired_dir, "paired_sample_metrics.csv"))
 cat("Saved: paired_analysis/paired_sample_metrics.csv\n")
 
-# Compile hypothesis test results
-hypothesis_tests <- data.frame(
-  hypothesis = c(
-    "H1: Abx reduces diversity",
-    "H2: Anti-anaerobic reduces anaerobes",
-    "H3: Broad-spectrum increases Enterobact",
-    "H4: Abx increases instability",
-    "H5a: Dose-response (Shannon)",
-    "H5b: Dose-response (Bray-Curtis)"
-  ),
-  test = c(
-    "Wilcoxon (one-sided)",
-    "Wilcoxon (one-sided)",
-    "Wilcoxon (one-sided)",
-    "Wilcoxon (one-sided)",
-    "Spearman correlation",
-    "Spearman correlation"
-  ),
-  statistic = c(
-    h1_wilcox$statistic,
-    h2_wilcox$statistic,
-    h3_wilcox$statistic,
-    h4_wilcox$statistic,
-    h5_cor_shannon$estimate,
-    h5_cor_bray$estimate
-  ),
-  p_value = c(
-    h1_wilcox$p.value,
-    h2_wilcox$p.value,
-    h3_wilcox$p.value,
-    h4_wilcox$p.value,
-    h5_cor_shannon$p.value,
-    h5_cor_bray$p.value
-  )
-)
-
-write_csv(hypothesis_tests, file.path(results_dir, "paired_analysis/hypothesis_tests.csv"))
-cat("Saved: paired_analysis/hypothesis_tests.csv\n")
+# Save exposure summary
+write_csv(exposure_summary, file.path(paired_dir, "exposure_summary.csv"))
+cat("Saved: paired_analysis/exposure_summary.csv\n")
 
 # =============================================================================
-# 6. Summary
+# 7. Summary
 # =============================================================================
 
 cat("\n")
 cat("=" %>% rep(60) %>% paste(collapse = ""), "\n")
-cat("SUMMARY OF PAIRED ANALYSIS\n")
+cat("SUMMARY OF PAIRED ANALYSIS - INDIVIDUAL ANTIBIOTICS\n")
 cat("=" %>% rep(60) %>% paste(collapse = ""), "\n\n")
 
 cat("Sample pairs analyzed:", nrow(paired_results), "\n")
-cat("  - With Abx exposure:", sum(paired_results$abx_between_any), "\n")
-cat("  - Without Abx:", sum(!paired_results$abx_between_any), "\n\n")
+cat("Individual antibiotics tested:", length(individual_antibiotics), "\n")
+cat("Outcomes tested:", length(outcomes), "\n\n")
 
-cat("Key Findings:\n")
-cat("-" %>% rep(40) %>% paste(collapse = ""), "\n")
+cat("Significant findings (p < 0.05):", nrow(significant_results), "\n")
+cat("Marginal findings (0.05 <= p < 0.1):", nrow(marginal_results), "\n\n")
 
-for (i in 1:nrow(hypothesis_tests)) {
-  sig <- ifelse(hypothesis_tests$p_value[i] < 0.05, "**",
-                ifelse(hypothesis_tests$p_value[i] < 0.1, "*", ""))
-  cat(sprintf("%-45s p = %.4f %s\n",
-              hypothesis_tests$hypothesis[i],
-              hypothesis_tests$p_value[i],
-              sig))
+if (nrow(significant_results) > 0) {
+  cat("Key significant associations:\n")
+  cat("-" %>% rep(40) %>% paste(collapse = ""), "\n")
+  for (i in 1:min(10, nrow(significant_results))) {
+    direction <- ifelse(significant_results$estimate[i] > 0, "increases", "decreases")
+    cat(sprintf("  %s %s %s (est=%.3f, p=%.4f)\n",
+                significant_results$antibiotic[i],
+                direction,
+                significant_results$outcome_label[i],
+                significant_results$estimate[i],
+                significant_results$p.value[i]))
+  }
 }
 
-cat("\n* p < 0.10, ** p < 0.05\n")
-cat("\nPaired sample analysis complete!\n")
+cat("\nPaired sample analysis with individual antibiotics complete!\n")

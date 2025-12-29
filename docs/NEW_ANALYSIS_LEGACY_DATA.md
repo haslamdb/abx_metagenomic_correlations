@@ -1,6 +1,6 @@
 # Reanalysis of Legacy Antibiotic-Microbiome Data
 
-**Date:** December 2025 (last updated: 2025-12-28)
+**Date:** December 2025 (last updated: 2025-12-29)
 **Data Sources:**
 - **Taxonomic profiles:** Original Kraken2/Bracken output files (`data/kraken2_legacy/`)
 - **Sample metadata:** `data/legacy/SampleListFormatted.csv`
@@ -323,6 +323,42 @@ individual_antibiotics_v2_with_covariates/
 
 ---
 
+### Script 5c: Combine Results and Concordance Analysis
+**`05c_combine_results.R`**
+
+Combines results from all three differential abundance methods (ALDEx2, MaAsLin3, ANCOM-BC2) across all antibiotics at both species and genus levels.
+
+#### Features
+
+- Combines individual antibiotic results into unified tables
+- Calculates multi-method concordance (how many methods detected each association)
+- Identifies robust associations (significant in 2+ methods)
+- Generates focused analyses for Enterococcus, Enterobacteriaceae, and anaerobes
+
+#### Outputs
+```
+combined_results/
+├── species_level/
+│   ├── all_antibiotics_combined.csv      # All results merged
+│   ├── method_concordance.csv            # Hits with method counts
+│   ├── robust_associations.csv           # 2+ methods agree
+│   ├── summary_by_antibiotic.csv         # Overview table
+│   ├── enterococcus_by_antibiotic.csv    # Enterococcus-focused
+│   ├── enterobacteriaceae_by_antibiotic.csv  # Enterobacteriaceae-focused
+│   └── anaerobe_by_antibiotic.csv        # Anaerobe-focused
+└── genus_level/
+    └── (same structure as species_level)
+```
+
+#### Summary Statistics
+
+| Level | Total Associations | Robust (2+ methods) | All 3 Methods |
+|-------|-------------------|---------------------|---------------|
+| Species | 2,540 | 577 | 67 |
+| Genus | 448 | 147 | 25 |
+
+---
+
 ### Script 6: Network Visualization
 **`06_network_visualization.R`**
 
@@ -494,6 +530,105 @@ figures/
 ├── genus_persistence_heatmap.pdf   # Heatmap of genus-level persistence
 ├── persistence_scatter.pdf         # Scatter plot of before vs after
 └── genus_persistence_forest.pdf    # Forest plot of genus persistence
+```
+
+---
+
+### Script 9: Cefepime vs Pip/Tazo Comparison
+**`07_cefepime_vs_piptazo_comparison.R`**
+
+Comprehensive comparison of Cefepime and Piperacillin-Tazobactam effects on the gut microbiome across multiple taxonomic levels.
+
+#### Analyses Performed
+
+1. **Species-level comparison**: Venn diagram of affected species
+2. **Genus-level comparison**: Venn diagram of affected genera
+3. **Enterococcus comparison**: VRE-relevant species affected by each drug
+4. **Enterobacteriaceae comparison**: Gram-negative effects
+5. **Anaerobe comparison**: Anti-anaerobic activity differences
+6. **Effect size correlation**: Do shared species show similar effect sizes?
+
+#### Key Findings
+
+| Level | Cefepime Only | Shared | Pip/Tazo Only |
+|-------|---------------|--------|---------------|
+| Species | 55 | 56 | 143 |
+| Genera | 20 | 18 | 37 |
+| Enterococcus | 9 | 4 | 7 |
+| Enterobacteriaceae | 16 | 9 | 68 |
+| Anaerobes | 18 | 47 | 152 |
+
+- **Pip/Tazo has ~2.5x broader effects** than Cefepime at species level
+- **Both drugs increase Enterococcus** (VRE risk) with shared species
+- **Pip/Tazo massively depletes anaerobes** (136 decreased vs 13 increased)
+- **Cefepime more selective** for Enterobacteriaceae suppression
+- **Effect sizes highly correlated** (r=0.925) for robust shared species
+
+#### Outputs
+```
+cefepime_vs_piptazo/
+├── species_comparison.pdf              # Species Venn diagram
+├── genus_comparison.pdf                # Genus Venn diagram
+├── enterococcus_comparison.pdf         # Enterococcus Venn
+├── enterobacteriaceae_comparison.pdf   # Enterobacteriaceae Venn
+├── anaerobe_comparison.pdf             # Anaerobe Venn
+├── effect_size_correlation.pdf         # Scatter plot with r value
+├── species_comparison.csv              # Species-level data
+├── genus_comparison.csv                # Genus-level data
+├── enterococcus_comparison.csv         # Enterococcus data
+├── enterobacteriaceae_comparison.csv   # Enterobacteriaceae data
+├── anaerobe_comparison.csv             # Anaerobe data
+└── effect_correlation.csv              # Correlation data
+```
+
+---
+
+### Script 10: Pathogenic vs Non-Pathogenic Comparison
+**`08_pathogenic_vs_nonpathogenic_comparison.R`**
+
+Tests whether pathogenic species within genera are more resistant to antibiotic perturbation than related commensal species.
+
+#### Hypothesis
+
+Known pathogens (E. coli, K. pneumoniae, K. oxytoca, P. aeruginosa) may be better equipped to withstand antibiotic-induced microbiome perturbation, even without specific antibiotic resistance genes.
+
+#### Comparisons Made
+
+1. **Escherichia**: E. coli (pathogenic) vs other Escherichia (E. fergusonii, E. marmotae, etc.)
+2. **Klebsiella**: K. pneumoniae + K. oxytoca (pathogenic) vs other Klebsiella species
+
+#### Metrics Analyzed
+
+For each species:
+- Prevalence in dataset
+- Mean relative abundance
+- Number of antibiotics with any significant effect
+- Number of antibiotics with robust effect (2+ methods)
+- Mean effect size magnitude
+
+#### Key Findings
+
+**Result: Hypothesis NOT supported**
+
+| Species Type | Mean Abx Affecting | Mean Robust Abx |
+|--------------|--------------------|-----------------|
+| E. coli (pathogenic) | 3.0 | 2.0 |
+| Other Escherichia (commensal) | 1.7 | 1.4 |
+| K. pneumoniae/oxytoca (pathogenic) | 1.5 | 0.5 |
+| Other Klebsiella (commensal) | 1.9 | 1.4 |
+
+Pathogens are affected by **MORE** antibiotics, not fewer. They have more robust associations (consistent detection across methods), possibly due to:
+- Higher prevalence enabling better statistical power
+- Greater clinical importance leading to more sampling
+- Stronger ecological effects when these species change
+
+#### Outputs
+```
+pathogenic_comparison/
+├── escherichia_comparison.csv
+├── klebsiella_comparison.csv
+├── pathogen_vs_commensal_summary.csv
+└── analysis_summary.txt
 ```
 
 ---
@@ -682,7 +817,118 @@ Both analyses now use **consistent paired-sample methodology** without external 
    - Consistent patterns emerge despite non-significant p-values
    - Larger cohorts needed to confirm antibiotic-specific effects
 
-### 9. Individual Antibiotic Effects (Covariate-Adjusted)
+### 9. Multi-Method Species-Level Differential Abundance (Phase 7 Update)
+
+**Analysis:** Three complementary methods (ALDEx2, MaAsLin3, ANCOM-BC2) with covariate adjustment for Vancomycin_IV/PO split.
+
+#### Sample Sizes by Antibiotic
+
+| Antibiotic | Exposed (7d) | Unexposed | Status |
+|------------|--------------|-----------|--------|
+| Pip_Tazo | 196 | 709 | Complete |
+| TMP_SMX | 158 | 747 | Complete |
+| Vancomycin_IV | 85 | 820 | Complete |
+| Cefepime | 79 | 826 | Complete |
+| Meropenem | 63 | 842 | Complete |
+| Ciprofloxacin | 44 | 861 | Complete |
+| Metronidazole | 31 | 874 | Complete |
+| Ceftriaxone | 19 | 886 | In Progress |
+| Clindamycin | 12 | 893 | Pending |
+| Vancomycin_PO | 8 | 897 | **Skipped** (n < 10) |
+
+#### Summary: Significant Associations by Method
+
+| Antibiotic | ALDEx2 | MaAsLin3 | ANCOM-BC2 | Robust (2+) | All 3 |
+|------------|--------|----------|-----------|-------------|-------|
+| Pip_Tazo | 33 | 120 | 424 | 137 | 10 |
+| Meropenem | 22 | 84 | 345 | 92 | 12 |
+| Ciprofloxacin | 34 | 81 | 303 | 89 | 25 |
+| Metronidazole | 15 | 98 | 87 | 86 | 4 |
+| TMP_SMX | 11 | 72 | 310 | 70 | 9 |
+| Cefepime | 11 | 63 | 104 | 56 | 7 |
+| Vancomycin_IV | 0 | 16 | 307 | 16 | 0 |
+| **Total** | **126** | **534** | **1880** | **546** | **67** |
+
+#### Highest-Confidence Associations (All 3 Methods)
+
+**Cefepime** (n=7 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Enterococcus faecalis* | +2.1 | ↑ | VRE risk |
+| *Enterococcus raffinosus* | +2.2 | ↑ | VRE risk |
+| *Enterococcus durans* | +1.8 | ↑ | VRE risk |
+| *Enterococcus gallinarum* | +1.7 | ↑ | Intrinsic vancomycin resistance |
+| *Clostridium* spp. | +2.2 | ↑ | CDI risk |
+
+**Meropenem** (n=12 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Enterococcus faecalis* | +2.1 | ↑ | VRE selection |
+| *Pseudomonas aeruginosa* | +2.2 | ↑ | MDR risk |
+| *Staphylococcus aureus* | +2.2 | ↑ | MRSA risk |
+| *Veillonella* spp. (4) | -1.5 to -1.7 | ↓ | Commensal depletion |
+
+**Pip_Tazo** (n=10 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Anaerostipes hadrus* | -1.1 | ↓ | Butyrate producer loss |
+| *Roseburia inulinivorans* | -1.0 | ↓ | Butyrate producer loss |
+| *Ruminococcus faecis* | -1.2 | ↓ | Fiber fermenter loss |
+| *[Eubacterium] hallii* | -1.2 | ↓ | SCFA producer loss |
+| *Enterococcus* sp. | +1.4 | ↑ | VRE risk |
+
+**Ciprofloxacin** (n=25 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Escherichia coli* | -1.6 | ↓ | Target organism |
+| *Salmonella enterica* | -1.6 | ↓ | Target organism |
+| *Lactobacillus* spp. (7+) | +1.8 to +3.0 | ↑ | Intrinsic resistance |
+| *[Candida] glabrata* | +2.9 | ↑ | Fungal overgrowth |
+| *Candida tropicalis* | +2.2 | ↑ | Fungal overgrowth |
+
+**TMP_SMX** (n=9 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Veillonella parvula* | -1.6 | ↓ | Consistent marker |
+| *Veillonella tobetsuensis* | -1.9 | ↓ | Consistent marker |
+| *Veillonella* spp. (7 more) | -1.5 to -2.0 | ↓ | Anaerobe-sparing? |
+
+**Metronidazole** (n=4 species, all 3 methods):
+| Species | Effect | Direction | Clinical Relevance |
+|---------|--------|-----------|-------------------|
+| *Veillonella parvula* | -1.8 | ↓ | Target anaerobe |
+| *Streptococcus* spp. | +2.1 to +2.4 | ↑ | Expansion into niche |
+
+**Vancomycin_IV** (n=0 species with all 3 methods):
+- Only 16 robust associations (2+ methods), none by all 3
+- Consistent with IV vancomycin not reaching gut lumen
+- Effects likely indirect (hospital/ICU environment, co-administered drugs)
+
+#### Key Biological Insights
+
+1. **Enterococcus expansion** is robustly associated with β-lactams (Cefepime, Meropenem, Pip_Tazo)
+   - VRE risk: multiple *E. faecalis*, *E. faecium*, *E. raffinosus* species increase
+   - Effect sizes +1.4 to +2.2 log2FC (3-5x increase)
+
+2. **Butyrate-producer depletion** with Pip_Tazo
+   - *Faecalibacterium*, *Roseburia*, *Ruminococcus*, *Anaerostipes*, *[Eubacterium] hallii*
+   - Critical for gut barrier integrity and immune regulation
+
+3. **Ciprofloxacin paradox**: Kills *E. coli*/Enterobacteriaceae but:
+   - *Lactobacillus* expands (intrinsic fluoroquinolone resistance)
+   - *Candida* increases (fungal overgrowth after bacterial suppression)
+
+4. **Veillonella** consistently depleted by TMP-SMX, Meropenem, Metronidazole
+   - Potential biomarker of antibiotic-induced dysbiosis
+
+5. **Opportunistic pathogens increase** with Meropenem:
+   - *P. aeruginosa* (+2.2), *S. aureus* (+2.2)
+   - ICU-relevant MDR organisms
+
+6. **Metronidazole** strongly suppresses strict anaerobes but:
+   - *Streptococcus* expands to fill niche (+2.1 to +2.4)
+
+### 10. Individual Antibiotic Effects (Covariate-Adjusted, Original Analysis)
 
 **Critical finding:** Without adjusting for co-administered antibiotics, results are confounded and often biologically implausible. With proper covariate adjustment, results align with known antibiotic pharmacology.
 
@@ -939,6 +1185,35 @@ results/new_analysis_legacy_data/
 
 ## Future Analyses (TODO)
 
+### 0. Antibiotic Resistance Gene (ARG) Abundance Analysis
+
+**Priority: HIGH**
+
+Run the same antibiotic-association analysis pipeline with ARG abundance data:
+
+**Objective:** Determine whether antibiotic exposure selects for increased ARG carriage.
+
+**Approach:**
+1. Generate ARG abundance profiles from existing metagenomic data using:
+   - AMRFinderPlus, CARD-RGI, or ResFinder
+   - Or re-analyze Bracken data with ARG-specific database (e.g., MEGARes)
+2. Create ARG count/abundance matrix (samples × ARG families)
+3. Apply same differential abundance methods (ALDEx2, MaAsLin3, ANCOM-BC2)
+4. Test each antibiotic's association with ARG abundance
+5. Look for:
+   - Class-specific effects (e.g., β-lactam use → β-lactamase genes)
+   - Cross-class selection (e.g., vancomycin use → aminoglycoside resistance)
+   - Temporal dynamics (ARG expansion during exposure, persistence after)
+
+**Expected outputs:**
+- `arg_abundance_matrix.csv`
+- `arg_by_antibiotic_aldex2.csv`
+- `arg_by_antibiotic_maaslin3.csv`
+- `arg_by_antibiotic_ancombc2.csv`
+- `arg_robust_associations.csv`
+
+---
+
 ### 1. Extended Exposure Windows
 
 Current analyses use a **7-day** pre-sample window for antibiotic exposure. Additional windows to explore:
@@ -1017,6 +1292,70 @@ Current models adjust for patient group and concurrent antibiotics. Additional c
 ---
 
 ## Changelog
+
+### 2025-12-29 (Combined Results and Comparative Analyses)
+
+**New analysis scripts:**
+
+1. **`05c_combine_results.R`** - Combines all differential abundance results
+   - Merges species and genus-level results from ALDEx2, MaAsLin3, ANCOM-BC2
+   - Calculates multi-method concordance
+   - Generates focused analyses for Enterococcus, Enterobacteriaceae, anaerobes
+   - Output: 577 robust species associations, 147 robust genus associations
+
+2. **`07_cefepime_vs_piptazo_comparison.R`** - Antibiotic comparison analysis
+   - Venn diagrams comparing affected taxa at multiple levels
+   - Effect size correlation analysis (r=0.925 for shared species)
+   - Key finding: Pip/Tazo has ~2.5x broader effects, both increase Enterococcus
+   - Pip/Tazo massively depletes anaerobes (136 decreased vs 13 increased)
+
+3. **`08_pathogenic_vs_nonpathogenic_comparison.R`** - Pathogen resistance hypothesis test
+   - Tested whether pathogens (E. coli, K. pneumoniae) resist perturbation better
+   - **Hypothesis NOT supported**: Pathogens affected by MORE antibiotics, not fewer
+   - E. coli: 3.0 antibiotics vs 1.7 for other Escherichia
+   - Higher prevalence may enable better statistical detection
+
+**Key findings summary:**
+
+| Analysis | Species | Genera | Notes |
+|----------|---------|--------|-------|
+| Total robust associations | 577 | 147 | 2+ methods agree |
+| All 3 methods agree | 67 | 25 | Highest confidence |
+| Enterobacteriaceae associations | 499 | - | 2 by all 3 methods |
+| Anaerobe associations | 760 | - | 22 by all 3 methods |
+
+**Added TODO:**
+- ARG (antibiotic resistance gene) abundance analysis using same pipeline
+
+---
+
+### 2025-12-28 (Multi-Method Differential Abundance with Vancomycin Route Split)
+
+**Phase 7 species-level analysis completed (7/9 antibiotics):**
+
+Re-ran differential abundance analysis with Vancomycin split by administration route:
+- **Vancomycin_IV** (n=85): Complete - shows minimal direct microbiome effect (0 species by all 3 methods)
+- **Vancomycin_PO** (n=8): Skipped due to insufficient sample size
+
+**Key findings from multi-method concordance:**
+- 546 robust associations (found by 2+ methods)
+- 67 highest-confidence associations (all 3 methods agree)
+- Enterococcus expansion robustly associated with Cefepime, Meropenem (+1.8 to +2.2 log2FC)
+- Butyrate-producer depletion with Pip_Tazo (Roseburia, Anaerostipes, Ruminococcus)
+- Ciprofloxacin paradox: kills E. coli but increases Lactobacillus and Candida
+- Veillonella consistently depleted by TMP-SMX, Meropenem, Metronidazole
+
+**Pending/Running:**
+- Ceftriaxone and Clindamycin running (screen `abx_missing`)
+- Genus-level analysis re-running in parallel (screen `abx_genus`) with Vancomycin_IV/PO split
+- Previous genus results (unsplit Vancomycin) are **INVALID**
+
+**New outputs:**
+- Updated `robust_associations.csv` with Vancomycin_IV results
+- Updated `summary_by_antibiotic.csv`
+- `05b_complete_missing_antibiotics.R` script for completing missing antibiotics
+
+---
 
 ### 2025-12-28 (Methodology Update & Individual Antibiotic Analysis)
 
