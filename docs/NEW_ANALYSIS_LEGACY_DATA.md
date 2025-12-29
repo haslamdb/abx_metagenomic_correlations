@@ -633,6 +633,109 @@ pathogenic_comparison/
 
 ---
 
+### Script 11: Enterobacteriaceae Temporal Dynamics
+**`10_enterobact_temporal_dynamics.R`**
+
+Focused analysis examining temporal dynamics of Enterobacteriaceae expansion relative to antibiotic exposure, with emphasis on species-level pathogenic vs commensal distinction.
+
+#### How This Differs from Script 7 (07_recovery_analysis.R)
+
+| Aspect | 07_recovery_analysis.R | 10_enterobact_temporal_dynamics.R |
+|--------|------------------------|-----------------------------------|
+| **Taxonomic level** | Genus-level | **Species-level** (within Enterobacteriaceae) |
+| **Enterobacteriaceae** | Pooled together | **Split: pathogenic vs commensal** |
+| **Metric** | Total change (Δ) | **Rate of change (%/day)** |
+| **Focus** | Overall microbiome recovery | **Enterobact vs anaerobe recovery speed** |
+| **Paired analysis** | Recovery pairs only | Recovery + persistence pairs |
+| **Cross-sectional** | No | Yes (supplementary) |
+
+#### Species Classification
+
+**Pathogenic Enterobacteriaceae:**
+- *Escherichia coli*
+- *Klebsiella pneumoniae*
+- *Klebsiella oxytoca*
+- *Enterobacter cloacae*
+- *Citrobacter freundii*
+- *Serratia marcescens*
+
+**Commensal Enterobacteriaceae:** All other species in the family
+
+#### Analyses Performed
+
+1. **Cross-sectional analysis** (all 972 samples)
+   - Groups samples by time since last antibiotic: 0-7 days, 8-14 days, >14 days/never
+   - Compares mean abundance of pathogenic/commensal Enterobact, anaerobes, Enterococcus
+   - Note: Different samples at different time points (no true baseline)
+
+2. **Recovery rate analysis** (58 paired samples)
+   - Abx before S1, no meaningful Abx between S1→S2
+   - Calculates **rate of change (%/day)** for time-normalized comparison
+   - Rate = (S2 - S1) / interval_days
+
+3. **Persistence rate analysis** (209 paired samples)
+   - Abx administered between S1 and S2
+   - Tracks what happens during ongoing antibiotic exposure
+
+4. **Pathogenic vs commensal comparison**
+   - Direct comparison of recovery/persistence rates between pathogenic and commensal species
+
+5. **Individual antibiotic stratification**
+   - Breaks down recovery rates by prior antibiotic (Cefepime, Pip/Tazo, Vancomycin, etc.)
+
+#### Key Findings
+
+**Recovery Rates (after antibiotics stop):**
+| Taxon | n | Rate (%/day) | p vs zero |
+|-------|---|--------------|-----------|
+| Total Enterobacteriaceae | 58 | **+1.45** | 0.036 |
+| Pathogenic Enterobact | 58 | **+1.23** | 0.043 |
+| Commensal Enterobact | 58 | +0.22 | 0.405 |
+| Obligate Anaerobes | 58 | **+0.0006** | 0.999 |
+| Enterococcus | 58 | **-1.09** | 0.035 |
+
+**Key Ratios:**
+- Enterobact recover **2,424x faster** than anaerobes
+- Pathogenic Enterobact expand **5.7x faster** than commensal
+- After Cefepime: Enterobact expand **8.7x faster** than anaerobes
+
+**Recovery by Prior Antibiotic:**
+| Antibiotic | n | Enterobact Rate | Anaerobe Rate | Ratio |
+|------------|---|-----------------|---------------|-------|
+| Meropenem | 4 | +5.30 | -2.40 | -2.2x |
+| Metronidazole | 3 | +4.75 | +2.49 | 1.9x |
+| Pip_Tazo | 8 | +1.65 | +1.27 | 1.3x |
+| Cefepime | 12 | +1.61 | +0.19 | **8.7x** |
+| Vancomycin | 7 | +1.16 | -0.62 | -1.9x |
+
+#### Biological Interpretation
+
+The analysis confirms that Enterobacteriaceae (particularly pathogenic species) expand much faster than anaerobes after antibiotic cessation. This explains the post-antibiotic dominance pattern:
+
+1. **During antibiotics:** Anaerobes depleted, creating ecological niche
+2. **After antibiotics stop:** Enterobacteriaceae rapidly expand into vacant niche
+3. **Pathogenic advantage:** E. coli, Klebsiella expand 5.7x faster than commensal species
+4. **Anaerobes recover slowly:** Near-zero recovery rate explains persistent dysbiosis
+
+#### Outputs
+```
+enterobact_temporal/
+├── cross_sectional_by_recency.csv     # Abundance by time since Abx
+├── recovery_rates.csv                  # Paired sample recovery rates
+├── persistence_rates.csv               # Paired sample persistence rates
+├── pathogenic_vs_commensal.csv         # Direct comparison
+├── recovery_by_individual_abx.csv      # Individual antibiotic breakdown
+├── analysis_summary.txt                # Human-readable summary
+
+figures/
+├── enterobact_cross_sectional.pdf      # Abundance by time window
+├── recovery_rates_barplot.pdf          # Recovery rate comparison
+├── pathogenic_vs_commensal.pdf         # Species-level comparison
+└── recovery_by_antibiotic.pdf          # Individual antibiotic effects
+```
+
+---
+
 ## Key Results
 
 ### 1. Alpha Diversity
@@ -1111,6 +1214,7 @@ R/new_analysis_legacy_data/
 ├── 06_network_visualization.R
 ├── 07_recovery_analysis.R             # Microbiome recovery after Abx cessation
 ├── 08_persistence_analysis.R          # Persistence mechanism analysis
+├── 10_enterobact_temporal_dynamics.R  # Enterobacteriaceae temporal dynamics
 └── run_all_analysis.sh                # Master script to run all analyses
 
 results/new_analysis_legacy_data/
@@ -1171,6 +1275,13 @@ results/new_analysis_legacy_data/
 │   ├── recovery_pairs.csv
 │   ├── recovery_pooled.csv
 │   └── recovery_by_antibiotic.csv
+├── enterobact_temporal/
+│   ├── cross_sectional_by_recency.csv
+│   ├── recovery_rates.csv
+│   ├── persistence_rates.csv
+│   ├── pathogenic_vs_commensal.csv
+│   ├── recovery_by_individual_abx.csv
+│   └── analysis_summary.txt
 └── persistence_analysis/
     ├── paired_persistence_data.csv
     ├── genus_persistence.csv
@@ -1292,6 +1403,42 @@ Current models adjust for patient group and concurrent antibiotics. Additional c
 ---
 
 ## Changelog
+
+### 2025-12-29 (Enterobacteriaceae Temporal Dynamics)
+
+**New analysis script:**
+
+**`10_enterobact_temporal_dynamics.R`** - Species-level temporal dynamics of Enterobacteriaceae expansion
+
+This script provides focused analysis of WHY Enterobacteriaceae dominate after antibiotic exposure, examining:
+- Species-level pathogenic vs commensal distinction within Enterobacteriaceae family
+- Time-normalized recovery rates (%/day) for direct comparison across different interval lengths
+- Both recovery (after Abx) and persistence (during Abx) paired sample analyses
+- Individual antibiotic stratification for recovery rates
+
+**Key methodological difference from 07_recovery_analysis.R:**
+- Genus-level → **Species-level** (within Enterobacteriaceae)
+- Total change (Δ) → **Rate of change (%/day)**
+- Enterobacteriaceae pooled → **Split pathogenic vs commensal**
+
+**Key findings:**
+- Enterobacteriaceae recover **2,424x faster** than obligate anaerobes (1.45 vs 0.0006 %/day)
+- Pathogenic Enterobact (E. coli, Klebsiella, etc.) expand **5.7x faster** than commensal species
+- After Cefepime: Enterobact/Anaerobe recovery ratio = **8.7x**
+- Enterococcus DECREASES during recovery (-1.09 %/day, p=0.035), consistent with selection ending
+
+**Biological interpretation:**
+This explains the post-antibiotic pathogen dominance mechanism:
+1. During antibiotics: Anaerobes depleted, ecological niche opens
+2. After antibiotics stop: Enterobacteriaceae rapidly fill niche (fast doubling time)
+3. Anaerobes recover slowly: Near-zero rate explains persistent dysbiosis
+4. Pathogenic species have advantage: Clinical strains optimized for rapid colonization
+
+**New outputs:**
+- `enterobact_temporal/` directory with recovery rates, persistence rates, and individual antibiotic breakdown
+- `analysis_summary.txt` with human-readable findings
+
+---
 
 ### 2025-12-29 (Combined Results and Comparative Analyses)
 

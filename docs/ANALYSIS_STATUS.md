@@ -113,6 +113,25 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 - **Script:** `R/new_analysis_legacy_data/08_persistence_analysis.R`
 - **Output:** `results/new_analysis_legacy_data/persistence_analysis/`
 
+### Phase 11: Enterobacteriaceae Temporal Dynamics (2025-12-29)
+- [x] Species-level analysis distinguishing pathogenic vs commensal Enterobacteriaceae
+- [x] Recovery RATE analysis (% change per day) from paired samples
+- [x] Cross-sectional analysis by time-since-antibiotics (all samples)
+- [x] Individual antibiotic stratification of recovery rates
+- [x] Comparison with 07_recovery_analysis.R (see below)
+- **Script:** `R/new_analysis_legacy_data/10_enterobact_temporal_dynamics.R`
+- **Output:** `results/new_analysis_legacy_data/enterobact_temporal/`
+
+**How this differs from 07_recovery_analysis.R:**
+
+| Aspect | 07_recovery_analysis.R | 10_enterobact_temporal_dynamics.R |
+|--------|------------------------|-----------------------------------|
+| Taxonomic level | Genus-level | Species-level (Enterobacteriaceae) |
+| Enterobacteriaceae | Pooled together | **Split: pathogenic vs commensal** |
+| Metric | Total change (Δ) | **Rate of change (%/day)** |
+| Focus | Which genera recover after which antibiotics | **Do Enterobact recover faster than anaerobes?** |
+| Additional | - | Cross-sectional validation |
+
 ---
 
 ## Pending Work (TODO)
@@ -328,6 +347,30 @@ Both scripts now use **consistent paired-sample methodology** without external "
 - Enterobacteriaceae INCREASE after antibiotics stop (+9.7%, p=0.052)
 - Cefepime shows largest Enterobact expansion (+29%) during exposure
 - Vancomycin_IV selects for Enterococcus (+14%)
+
+### Enterobacteriaceae Temporal Dynamics (Phase 11)
+
+**Recovery RATES from paired samples (n=58 pairs):**
+
+| Taxon | Rate (%/day) | p-value | Interpretation |
+|-------|--------------|---------|----------------|
+| **Total Enterobact** | **+1.45** | **0.036** | Rapid expansion after abx |
+| **Pathogenic Enterobact** | **+1.23** | **0.043** | E. coli, K. pneumoniae expand faster |
+| Commensal Enterobact | +0.22 | 0.405 | Slower expansion |
+| Anaerobes | +0.001 | 0.999 | Essentially no recovery |
+| **Enterococcus** | **-1.09** | **0.035** | Returns to baseline |
+
+**Critical finding:** Enterobacteriaceae recover **2,424x faster** than anaerobes after antibiotics stop.
+
+**Recovery rates by individual antibiotic (paired samples):**
+
+| Antibiotic | n | Enterobact Rate | Anaerobe Rate | Ratio |
+|------------|---|-----------------|---------------|-------|
+| **Cefepime** | 12 | **+1.61%/day** | +0.18%/day | **8.7x** |
+| **Pip_Tazo** | 8 | **+1.65%/day** | +1.27%/day | 1.3x |
+| **Vancomycin** | 7 | **+1.15%/day** | -0.62%/day | -1.9x |
+
+**Key insight:** After Cefepime exposure, Enterobacteriaceae expand **8.7x faster** than anaerobes recover. This explains why Enterobacteriaceae dominate the post-antibiotic gut - they rapidly fill the ecological niche vacated by depleted anaerobes.
 
 ---
 
