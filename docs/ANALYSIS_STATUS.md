@@ -14,6 +14,45 @@ Reanalysis of legacy antibiotic-microbiome data (2019) using modern compositiona
 
 ## Current Phase
 
+**Phase 12: Antibiotic Resistance Gene (ARG) Analysis** - **COMPLETE**
+
+Analyzed ARG abundance data from AMRFinderPlus to identify associations between antibiotic exposure and resistance gene carriage.
+
+### ARG-Level Analysis Status (Script 11)
+
+| Antibiotic | ALDEx2 | MaAsLin3 | ANCOM-BC2 | Robust (2+) | Status |
+|------------|--------|----------|-----------|-------------|--------|
+| Meropenem | 6 | 56 | 426 | 50 | Complete |
+| Ciprofloxacin | 0 | 38 | 408 | 36 | Complete |
+| TMP_SMX | 0 | 40 | 462 | 36 | Complete |
+| Vancomycin_IV | 0 | 27 | 514 | 22 | Complete |
+| Ceftriaxone | 0 | 25 | 133 | 21 | Complete |
+| Pip_Tazo | 0 | 20 | 379 | 18 | Complete |
+| Metronidazole | 0 | 25 | 209 | 16 | Complete |
+| Clindamycin | 0 | 10 | 125 | 8 | Complete |
+| Cefepime | 0 | 8 | 159 | 5 | Complete |
+| Vancomycin_PO | - | - | - | - | Skipped (n=8) |
+
+**Total: 213 robust ARG associations** (found by 2+ methods), **4 found by all 3 methods**
+
+### ARG Family-Level Analysis Status (Script 11b)
+
+| Antibiotic | ALDEx2 | MaAsLin3 | ANCOM-BC2 | Robust (2+) | Status |
+|------------|--------|----------|-----------|-------------|--------|
+| Meropenem | 2 | 9 | 38 | 9 | Complete |
+| Cefepime | 1 | 5 | 24 | 5 | Complete |
+| Vancomycin_IV | 3 | 3 | 38 | 4 | Complete |
+| Pip_Tazo | 1 | 3 | 30 | 3 | Complete |
+| Clindamycin | 0 | 3 | 9 | 3 | Complete |
+| Ciprofloxacin | 1 | 2 | 9 | 2 | Complete |
+| Metronidazole | 2 | 2 | 13 | 2 | Complete |
+| TMP_SMX | 0 | 1 | 38 | 1 | Complete |
+| Ceftriaxone | 0 | 1 | 11 | 1 | Complete |
+
+**Total: 30 robust ARG family associations** (found by 2+ methods), **7 found by all 3 methods**
+
+---
+
 **Phase 7: Vancomycin Route Split Analysis** - **COMPLETE**
 
 Re-ran all analyses with vancomycin separated by administration route:
@@ -122,6 +161,15 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 - **Script:** `R/new_analysis_legacy_data/10_enterobact_temporal_dynamics.R`
 - **Output:** `results/new_analysis_legacy_data/enterobact_temporal/`
 
+### Phase 12: Antibiotic Resistance Gene (ARG) Analysis (2025-12-29)
+- [x] Build ARG count matrices from AMRFinderPlus output
+- [x] ARG-level differential abundance (ALDEx2, MaAsLin3, ANCOM-BC2)
+- [x] ARG family-level differential abundance analysis
+- [x] Paired sample ARG analysis (pre/post antibiotic exposure)
+- [x] Multi-method concordance analysis
+- **Scripts:** `00c_build_arg_family_matrices.R`, `11_arg_differential_abundance.R`, `11b_arg_family_differential_abundance.R`, `12_arg_paired_sample_analysis.R`
+- **Output:** `results/new_analysis_legacy_data/arg_differential_abundance/`, `results/new_analysis_legacy_data/arg_family_differential_abundance/`, `results/new_analysis_legacy_data/arg_paired_analysis/`
+
 **How this differs from 07_recovery_analysis.R:**
 
 | Aspect | 07_recovery_analysis.R | 10_enterobact_temporal_dynamics.R |
@@ -147,7 +195,7 @@ Previous analyses combined IV and PO vancomycin, confounding the observed effect
 - [ ] Integrate findings into summary document
 
 ### Future Analyses (see docs/NEW_ANALYSIS_LEGACY_DATA.md)
-- [ ] **ARG abundance analysis** - Run same antibiotic-association analysis with antibiotic resistance gene (ARG) abundance results
+- [x] ~~**ARG abundance analysis**~~ - **DONE** (Phase 12) - Run same antibiotic-association analysis with antibiotic resistance gene (ARG) abundance results
 - [ ] 14-day and 30-day exposure windows
 - [ ] Additional covariates (TPN, PPIs, immunosuppressants)
 
@@ -371,6 +419,50 @@ Both scripts now use **consistent paired-sample methodology** without external "
 | **Vancomycin** | 7 | **+1.15%/day** | -0.62%/day | -1.9x |
 
 **Key insight:** After Cefepime exposure, Enterobacteriaceae expand **8.7x faster** than anaerobes recover. This explains why Enterobacteriaceae dominate the post-antibiotic gut - they rapidly fill the ecological niche vacated by depleted anaerobes.
+
+### ARG Analysis Results (Phase 12)
+
+**ARG-level differential abundance (900 samples, 718 ARGs after filtering):**
+
+Highest-confidence ARG associations (all 3 methods agree):
+
+| Antibiotic | ARG | Effect (log2FC) |
+|------------|-----|-----------------|
+| Meropenem | MexX efflux pump | +1.53 |
+| Meropenem | BlaR1 beta-lactam sensor | +1.59 |
+| Meropenem | MupA mupirocin resistance | +1.64 |
+| Meropenem | Tet(38) tetracycline efflux | +1.33 |
+
+Notable patterns:
+- **Ceftriaxone**: Strong enrichment of CTX-M extended-spectrum beta-lactamases (+1.0 to +1.8 log2FC)
+- **Ciprofloxacin**: Associated with VanD vancomycin resistance cluster (+2.1 to +2.5 log2FC)
+- **Clindamycin**: Increased QnrB quinolone resistance genes (+2.0 to +2.7 log2FC)
+
+**ARG family-level differential abundance (723 samples, 69 families after filtering):**
+
+Highest-confidence family associations (all 3 methods agree):
+
+| Antibiotic | ARG Family | Effect (log2FC) |
+|------------|-----------|-----------------|
+| Cefepime | Oqx RND efflux | -1.73 |
+| Meropenem | MupA (mupirocin resistance) | +1.69 |
+| Metronidazole | Erm methyltransferase | -1.59 |
+| Metronidazole | Tet ribosomal protection | -1.50 |
+| Pip-Tazo | Tet ribosomal protection | -0.70 |
+| Vancomycin IV | Msr ABC efflux | -1.15 |
+| Vancomycin IV | Tet ribosomal protection | -1.31 |
+
+**Paired sample ARG analysis (342 pairs):**
+
+Only 1 statistically significant within-patient change:
+- **TMP-SMX** decreases ARG Shannon diversity (p=0.047, estimate=-0.26)
+
+Other antibiotics showed no significant pre/post changes in ARG richness, diversity, or resistance class abundances.
+
+**Key biological patterns:**
+- Beta-lactams (Cefepime, Meropenem) decrease SHV-type ESBLs but Meropenem increases MecA and BlaR1
+- Vancomycin IV shows no increase in VanA/C/D genes (consistent with IV route not reaching gut)
+- Multiple antibiotics decrease tetracycline ribosomal protection genes
 
 ---
 
