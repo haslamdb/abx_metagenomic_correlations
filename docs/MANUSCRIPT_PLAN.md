@@ -191,9 +191,21 @@ This supports our thesis: **differential recovery kinetics, not resistance, driv
 1. **Clinical paradox:** BSI isolates are often susceptible to antibiotics patients received
 2. **Question:** If not resistance, why do pathogens dominate?
 3. **Finding:** Pathogens are affected by antibiotics but recover faster
-4. **Key result:** Enterobacteriaceae recover 2,400x faster than anaerobes
+4. **Key result:** Pathogenic Enterobacteriaceae recover 49x faster than anaerobes (p=0.045)
 5. **Supporting evidence:** ARG analysis shows no within-patient selection
 6. **Conclusion:** Recovery kinetics, not resistance, is the mechanism
+
+### Suggested Abstract Structure (200-250 words)
+
+**Background (1-2 sentences):** Antibiotic exposure leads to pathogen dominance and subsequent bloodstream infections. This is conventionally attributed to resistance selection.
+
+**The paradox (1-2 sentences):** We observed that BSI isolates are often susceptible to the antibiotics patients received. If not resistance, what explains pathogen dominance?
+
+**Methods (1-2 sentences):** Longitudinal metagenomics in N hospitalized children with paired analysis of microbiome recovery kinetics after antibiotic cessation.
+
+**Key results (3-4 sentences):** During antibiotics, Enterococcus expands while Enterobacteriaceae are suppressed. After cessation, pathogenic Enterobacteriaceae (K. pneumoniae, K. aerogenes) recover 49x faster than obligate anaerobes (p=0.045). ARG analysis shows no within-patient resistance selection, ruling out resistance as the mechanism.
+
+**Conclusion (1-2 sentences):** Differential recovery kinetics, not resistance selection, drives post-antibiotic pathogen dominance. The post-antibiotic window represents a critical period for therapeutic intervention.
 
 ### Introduction
 
@@ -453,6 +465,8 @@ Panel C: Interpretation diagram
 - **Figure S2:** Network visualization of antibiotic-species associations
 - **Figure S3:** Antibiotic-specific heatmap of effects on Enterococcus/Enterobacteriaceae/Anaerobes
 - **Figure S4:** Ciprofloxacin PO vs IV route comparison
+- **Figure S5:** E. faecalis vs E. faecium recovery trajectories (species-level heterogeneity within Enterococcus - addresses VRE clinical relevance since VRE is typically E. faecium)
+- **Figure S6:** Recovery rate as function of days-since-antibiotics (if data granularity permits - tests whether fastest recovery occurs in early window)
 - **Methods S1:** Detailed statistical methods
 - **Methods S2:** Genomic analysis pipeline for fecal-blood isolate comparison
 
@@ -864,7 +878,7 @@ If this analysis confirms the hypothesis, it could be:
 ### What to Emphasize
 1. The **clinical paradox**: BSI isolates are susceptible yet pathogens dominate
 2. The **mechanism**: Differential recovery kinetics, not resistance
-3. The **evidence**: Paired analysis showing 2,400x faster recovery
+3. The **evidence**: Paired analysis showing 49x faster recovery (species-level, p=0.045)
 4. The **negative finding**: ARGs don't explain the pattern
 5. The **clinical relevance**: Understanding mechanism enables intervention
 
@@ -880,6 +894,12 @@ If this analysis confirms the hypothesis, it could be:
 3. Metagenomic profiling limitations (relative abundance, not absolute)
 4. Recovery pairs smaller sample size (n=46-58)
 5. BSI cases are illustrative, not comprehensive (full analysis in companion paper)
+
+> **Preemptive defense for #3 (compositional data concern):** A reviewer may argue that Enterobacteriaceae aren't actually recovering faster—maybe anaerobes are recovering MORE, making Enterobacteriaceae's relative increase an artifact. Counter-arguments:
+> - The paired analysis controls for total read depth normalization
+> - Direction of change is consistent: Enterobacteriaceae increase while anaerobes remain flat (not increasing faster)
+> - Clinical BSI data independently validates that Enterobacteriaceae actually dominate and translocate
+> - The 49x difference is so large that even substantial compositional artifacts couldn't reverse the finding
 
 ---
 
