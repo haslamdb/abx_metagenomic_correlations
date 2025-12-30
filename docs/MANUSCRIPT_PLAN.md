@@ -466,7 +466,7 @@ Panel C: Interpretation diagram
 - **Figure S3:** Antibiotic-specific heatmap of effects on Enterococcus/Enterobacteriaceae/Anaerobes
 - **Figure S4:** Ciprofloxacin PO vs IV route comparison
 - **Figure S5:** E. faecalis vs E. faecium recovery trajectories (species-level heterogeneity within Enterococcus - addresses VRE clinical relevance since VRE is typically E. faecium)
-- **Figure S6:** Recovery rate as function of days-since-antibiotics (if data granularity permits - tests whether fastest recovery occurs in early window)
+- ~~**Figure S6:** Recovery rate as function of days-since-antibiotics~~ - **ASSESSED: Insufficient granularity** (see below)
 - **Methods S1:** Detailed statistical methods
 - **Methods S2:** Genomic analysis pipeline for fecal-blood isolate comparison
 
@@ -523,6 +523,42 @@ Both routes also significantly suppress anaerobes (IV: p<0.001, PO: p<0.001).
 **Interpretation:** Unlike vancomycin (where IV doesn't affect gut flora), ciprofloxacin IV reaches the gut via biliary excretion and has similar microbiome effects to PO administration. This confirms that route of administration matters differently depending on the antibiotic's pharmacokinetics.
 
 **Script:** `R/new_analysis_legacy_data/15_antibiotic_specific_effects.R`
+
+### Days-Since-Antibiotics Granularity Assessment (Figure S6 Candidate)
+
+**Question:** Do we have enough variation in days-since-antibiotics to test whether recovery rate depends on timing (i.e., faster recovery in early window)?
+
+#### Data Assessment (December 2024)
+
+**Recovery pairs identified:** 35 pairs (S1 on antibiotics, S2 off antibiotics)
+
+**Distribution of days since last antibiotic (for S2 samples):**
+
+| Category | N pairs | % |
+|----------|---------|---|
+| 1-3 days | 21 | 60% |
+| 8-14 days | 10 | 29% |
+| 15-21 days | 4 | 11% |
+
+- Range: 1-17 days
+- Median: 1 day (most S2 samples collected very soon after antibiotics stopped)
+- IQR: 1-9.5 days
+
+**Correlation analysis:**
+| Functional Group | Spearman rho | p-value | Interpretation |
+|------------------|--------------|---------|----------------|
+| Enterobacteriaceae | -0.121 | 0.49 | Expected direction (faster early) but NS |
+| Anaerobes | +0.036 | 0.84 | Flat (as expected) |
+
+**Conclusion:**
+- We have *some* variation (1-17 days range)
+- But 60% of samples cluster at 1-3 days post-antibiotics
+- Only 35 pairs total limits statistical power
+- Correlation is in the expected direction for Enterobacteriaceae (negative = faster early) but not significant
+
+**Decision:** Insufficient granularity for Figure S6. Note as limitation in manuscript. The 13-year BSI dataset (with thousands of events) can address this question with much greater power.
+
+**Output:** `results/new_analysis_legacy_data/paired_analysis/recovery_days_since_abx.csv`
 
 ---
 
