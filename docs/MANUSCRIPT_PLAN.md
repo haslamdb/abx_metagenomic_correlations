@@ -106,7 +106,9 @@ Contrary to a simple "resistance" narrative, our species-level differential abun
 | **Enterobacteriaceae** | 27.7% | 37.5% | **+9.7%** | **+1.45** | **0.036** |
 | Enterococcus | 18.1% | 10.2% | -7.9% | -1.09 | 0.035 |
 
-**Critical finding:** Enterobacteriaceae recover **2,424x faster** than anaerobes after antibiotics stop.
+**Critical finding:** Enterobacteriaceae recover **~1,450x faster** than anaerobes after antibiotics stop (1.45 vs 0.001 %/day).
+
+> **Note on recovery rate metrics:** The functional group analysis (above) sums all species within a category and calculates the recovery rate of the total abundance. The species-level ranking analysis calculates individual species recovery rates and takes the category mean. The species-level approach yields a more conservative **49x difference** (0.078 vs 0.0016 %/day, p=0.045). Both approaches show the same pattern; the species-level metric is more defensible for manuscript since it uses an unbiased ranking approach.
 
 ### 4. Pathogenic vs Commensal Enterobacteriaceae
 
@@ -378,7 +380,9 @@ Panel C: Conceptual diagram - Phase 1
 
 **Key Finding:** Pathogenic Enterobacteriaceae (K. pneumoniae, K. aerogenes, C. freundii) cluster at the TOP of the recovery ranking, while Enterococcus species cluster at the BOTTOM (mean rank 1506). This confirms Phase 2 of the temporal model: after antibiotics stop, Enterobacteriaceae rapidly recover while Enterococcus declines.
 
-**Pathogenic Enterobact recover 49x faster than Obligate Anaerobes** (0.078 vs 0.0016 %/day)
+**Pathogenic Enterobact recover 49x faster than Obligate Anaerobes** (0.078 vs 0.0016 %/day, p=0.045)
+
+> **Note on Enterococcus heterogeneity:** E. faecalis appears in the top 10 recoverers (#3, +0.34%/day) despite Enterococcus as a category ranking at the bottom (mean rank 1506). This suggests species-level heterogeneity within the genus—E. faecalis may behave differently than E. faecium. Clinically relevant: VRE is typically E. faecium, not E. faecalis. This nuance could be explored in supplementary analysis.
 
 Panel A: Ranked species by recovery rate (%/day)
 - Horizontal bar plot of ALL species ranked by recovery rate
@@ -480,6 +484,8 @@ The main analysis pools effects across antibiotics to show the general temporal 
 2. **Ciprofloxacin is unique** - fluoroquinolone kills both Enterococcus and Enterobacteriaceae
 3. **Anti-anaerobic agents** (metronidazole, clindamycin) cause Enterobacteriaceae bloom DURING exposure
 4. **Vancomycin_IV** kills gram-positives, allowing gram-negatives to expand
+
+> **Reconciling with the Two-Phase Model:** The "Phase 1 = Enterobacteriaceae suppressed" pattern applies specifically to **broad-spectrum β-lactams** (cefepime, meropenem, pip-tazo) that directly hit Enterobacteriaceae. Narrower-spectrum agents that spare Enterobacteriaceae (clindamycin, ceftriaxone, vancomycin_IV) show Enterobacteriaceae bloom DURING therapy as they expand into the depleted anaerobic niche. **Suggested manuscript text:** "The two-phase pattern was most pronounced with broad-spectrum β-lactams; narrower-spectrum agents showed antibiotic-specific patterns consistent with their spectra of activity."
 
 ### Ciprofloxacin Route Analysis (PO vs IV)
 
