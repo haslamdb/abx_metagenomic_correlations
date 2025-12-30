@@ -427,10 +427,20 @@ Unlike vancomycin (where IV doesn't reach gut), both PO and IV ciprofloxacin rea
 - **PO:** Direct luminal exposure
 - **IV:** Biliary excretion into gut
 
-Analysis will test whether route affects magnitude of:
-- Enterobacteriaceae suppression
-- Enterococcus suppression
-- Recovery rates after cessation
+#### Results
+
+Both routes significantly suppress Enterobacteriaceae with **no significant difference between routes**:
+
+| Route | N samples | Mean Enterobact (%) | vs Unexposed |
+|-------|-----------|---------------------|--------------|
+| None (unexposed) | 1,378 | 25.9% | -- |
+| IV only | 44 | 16.0% | p=0.04 |
+| PO only | 30 | 8.2% | p=0.008 |
+| **IV vs PO** | -- | -- | **p=0.54 (NS)** |
+
+Both routes also significantly suppress anaerobes (IV: p<0.001, PO: p<0.001).
+
+**Interpretation:** Unlike vancomycin (where IV doesn't affect gut flora), ciprofloxacin IV reaches the gut via biliary excretion and has similar microbiome effects to PO administration. This confirms that route of administration matters differently depending on the antibiotic's pharmacokinetics.
 
 **Script:** `R/new_analysis_legacy_data/15_antibiotic_specific_effects.R`
 
