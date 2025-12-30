@@ -302,6 +302,29 @@ Panel D: Summary statistics
 
 *Key message: Enterococcus increases, Enterobacteriaceae and commensals decrease*
 
+#### RESULTS (Analysis Complete)
+
+**Category Rankings by Mean Effect Size (log2FC):**
+
+| Category | N Species | Mean Rank | Mean Effect | Direction |
+|----------|-----------|-----------|-------------|-----------|
+| Other Opportunist | 14 | 64 (top) | **+1.54** | 100% increased |
+| **Enterococcus** | 38 | 102 | **+1.08** | 100% increased |
+| Lactobacillales | 62 | 147 | +0.87 | 100% increased |
+| Other | 105 | 168 | +0.57 | 100% increased |
+| Commensal Enterobact | 53 | 208 | +0.07 | mixed |
+| **Obligate Anaerobe** | 79 | 270 | **-0.52** | 100% decreased |
+| **Pathogenic Enterobact** | 7 | 313 (bottom) | **-1.10** | 100% decreased |
+
+**Top 5 Increasers During Antibiotic Exposure:**
+1. Acidaminococcus sp. D21 (+3.18 log2FC, Clindamycin)
+2. Staphylococcus epidermidis (+2.96, Meropenem)
+3. Lactobacillus fermentum (+2.91, Ciprofloxacin)
+4. Lactobacillus reuteri (+2.66, Ciprofloxacin)
+5. Enterococcus sp. 255_ESPC (+2.43, Meropenem)
+
+**Key Finding:** Enterococcus species cluster near the TOP of the ranking (mean rank 102), while pathogenic Enterobacteriaceae cluster at the BOTTOM (mean rank 313). This confirms Phase 1 of the temporal model: during antibiotics, Enterococcus expands while Enterobacteriaceae are suppressed.
+
 Panel A: Ranked species by effect size during antibiotic exposure
 - Horizontal bar plot of ALL species ranked by log2FC (exposed vs unexposed)
 - Color-coded by functional category (post-hoc annotation)
@@ -309,17 +332,53 @@ Panel A: Ranked species by effect size during antibiotic exposure
 - Shows Enterobacteriaceae and anaerobes clustering at BOTTOM (negative effect)
 
 Panel B: Category summary boxplot
-- Recovery rate distributions by functional category
+- Effect size distributions by functional category
 - Confirms pattern: Enterococcus ↑, Enterobacteriaceae ↓, Anaerobes ↓↓
 
 Panel C: Conceptual diagram - Phase 1
 - "During Antibiotics: Enterococcus fills the niche"
 
 **Script:** `R/new_analysis_legacy_data/14_species_exposure_ranking.R`
+**Output:** `results/new_analysis_legacy_data/species_exposure_ranking/`
 
 **Figure 3: Unbiased Species Ranking AFTER Antibiotic Cessation (Recovery Analysis)**
 
 *Key message: Enterobacteriaceae rapidly recover, Enterococcus declines, anaerobes stagnate*
+
+#### RESULTS (Analysis Complete)
+
+**Category Rankings by Mean Recovery Rate (%/day):**
+
+| Category | N Species | Mean Rank | Mean Recovery Rate | % Positive |
+|----------|-----------|-----------|-------------------|------------|
+| **Pathogenic Enterobact** | 9 | 666 (top) | **+0.078%/day** | 78% |
+| Commensal Enterobact | 242 | 727 | +0.0025%/day | 83% |
+| Obligate Anaerobe | 440 | 1083 | +0.0016%/day | 64% |
+| Bifidobacterium | 39 | 1137 | +0.0041%/day | 74% |
+| Other | 1423 | 1328 | -0.0002%/day | 58% |
+| Other Opportunist | 48 | 1473 | -0.018%/day | 46% |
+| **Enterococcus** | 75 | 1506 (bottom) | **-0.0017%/day** | 37% |
+| Lactobacillales | 220 | 1543 | -0.0009%/day | 37% |
+
+**Statistical Comparisons:**
+- Pathogenic Enterobact vs Obligate Anaerobes: **p=0.045** (significant)
+- Pathogenic vs Commensal Enterobact: p=0.14 (trend)
+
+**Top 10 Fastest Recoverers (n=50 pairs each):**
+1. **Klebsiella pneumoniae** (+0.56%/day) - Pathogenic Enterobact
+2. Streptococcus thermophilus (+0.52%/day)
+3. Enterococcus faecalis (+0.34%/day) - note: one of few Enterococcus recovering
+4. Veillonella parvula (+0.27%/day)
+5. **Klebsiella aerogenes** (+0.19%/day) - Pathogenic Enterobact
+6. Lactobacillus gasseri (+0.17%/day)
+7. Bifidobacterium breve (+0.17%/day)
+8. Bacteroides dorei (+0.13%/day)
+9. Lachnospiraceae bacterium 2_1_58FAA (+0.12%/day)
+10. **Citrobacter freundii** (+0.11%/day) - Pathogenic Enterobact
+
+**Key Finding:** Pathogenic Enterobacteriaceae (K. pneumoniae, K. aerogenes, C. freundii) cluster at the TOP of the recovery ranking, while Enterococcus species cluster at the BOTTOM (mean rank 1506). This confirms Phase 2 of the temporal model: after antibiotics stop, Enterobacteriaceae rapidly recover while Enterococcus declines.
+
+**Pathogenic Enterobact recover 49x faster than Obligate Anaerobes** (0.078 vs 0.0016 %/day)
 
 Panel A: Ranked species by recovery rate (%/day)
 - Horizontal bar plot of ALL species ranked by recovery rate
@@ -339,6 +398,7 @@ Panel D: Conceptual diagram - Phase 2
 - "After Antibiotics: Fast growers dominate"
 
 **Script:** `R/new_analysis_legacy_data/13_species_recovery_ranking.R`
+**Output:** `results/new_analysis_legacy_data/species_recovery_ranking/`
 
 **Figure 4: The Two-Phase Temporal Model (Synthesis)**
 
@@ -919,14 +979,22 @@ Panel D: Conceptual model
 
 ## Next Steps
 
-1. [ ] **Run species-level recovery ranking analysis** (Script 13)
-2. [ ] Compile BSI isolate data for Figure 1 (3-5 representative cases)
-3. [ ] Generate Figure 1 panels (timeline, susceptibility, genomic identity)
-4. [ ] Generate updated Figure 3 (unbiased ranking + doubling time correlation)
-5. [ ] Draft abstract (200-250 words)
-6. [ ] Draft introduction with clinical paradox hook
-7. [ ] Select target journal and review formatting requirements
-8. [ ] Co-author review of outline and figures
+### Completed
+1. [x] **Run species-level recovery ranking analysis** (Script 13) - DONE
+2. [x] **Run species-level exposure ranking analysis** (Script 14) - DONE
+3. [x] **Run antibiotic-specific effects analysis** (Script 15) - DONE
+4. [x] **Ciprofloxacin PO vs IV route comparison** - DONE (no significant difference)
+5. [x] **BSI study design and data request** - DONE (see BSI_DATA_REQUEST.md)
+
+### In Progress / Pending
+6. [ ] Compile BSI isolate data for Figure 1 (3-5 representative cases) - USER HAS DATA
+7. [ ] Generate Figure 1 panels (timeline, susceptibility, genomic identity)
+8. [ ] Finalize figure aesthetics for Figures 2-5
+9. [ ] Submit data request to IS for 13-year BSI analysis
+10. [ ] Draft abstract (200-250 words)
+11. [ ] Draft introduction with clinical paradox hook
+12. [ ] Select target journal and review formatting requirements
+13. [ ] Co-author review of outline and figures
 
 ---
 
