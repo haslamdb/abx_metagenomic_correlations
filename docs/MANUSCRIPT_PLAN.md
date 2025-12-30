@@ -183,9 +183,24 @@ This supports our thesis: **differential recovery kinetics, not resistance, driv
 ## Proposed Manuscript Structure
 
 ### Title (Options)
-1. "Susceptible Pathogens Dominate: Differential Recovery Kinetics, Not Resistance, Drive Post-Antibiotic Gut Dysbiosis"
-2. "The Resistance Paradox: Antibiotic-Susceptible Enterobacteriaceae Dominate Through Rapid Recovery"
-3. "Recovery Kinetics, Not Resistance, Explain Post-Antibiotic Pathogen Dominance in Hospitalized Children"
+
+**PREFERRED (pending BSI timing analysis confirmation):**
+> **"Differential Recovery Kinetics Link Antibiotic Exposure to Bloodstream Infection Etiology"**
+
+**Alternative options:**
+
+1. "Time Since Antibiotics Predicts Bloodstream Infection Organism: Evidence for Differential Recovery Kinetics"
+2. "The Post-Antibiotic Window: How Recovery Kinetics Shape Bloodstream Infection Etiology"
+3. "From Gut to Blood: Recovery Kinetics, Not Resistance, Determine Post-Antibiotic Infection Risk"
+4. "Why Susceptible Pathogens Cause Bloodstream Infections: Differential Recovery After Antibiotics"
+
+**Mechanism-focused (if BSI analysis not included):**
+5. "Differential Recovery Kinetics, Not Resistance, Drive Post-Antibiotic Pathogen Dominance"
+6. "Recovery Kinetics, Not Resistance, Explain Post-Antibiotic Pathogen Dominance in Hospitalized Children"
+
+**More provocative/attention-grabbing:**
+7. "Fast Recovery, Not Resistance: Why Susceptible Pathogens Dominate After Antibiotics"
+8. "The Resistance Paradox: Antibiotic-Susceptible Enterobacteriaceae Dominate Through Rapid Recovery"
 
 ### Abstract Key Points
 1. **Clinical paradox:** BSI isolates are often susceptible to antibiotics patients received
