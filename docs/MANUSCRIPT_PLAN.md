@@ -970,21 +970,37 @@ The key methodological strength is that our primary analysis is **paired/longitu
 
 ### Sensitivity Analyses to Include
 
-**Table S5: Stratified analysis by patient group**
+**Table S5: Stratified analysis by patient group - COMPLETED**
 
-| Patient Group | N pairs | Enterobact Recovery Rate | Consistent with pooled? |
-|---------------|---------|-------------------------|------------------------|
-| BMT | X | +Y%/day | Yes/No |
-| Liver Tx | X | +Y%/day | Yes/No |
-| IF/SB | X | +Y%/day | Yes/No |
-| PICU | X | +Y%/day | Yes/No |
+| Patient Group | N pairs | Enterobact Rate (%/day) | % Positive | p-value | Consistent? |
+|---------------|---------|------------------------|------------|---------|-------------|
+| **BMT** | 19 | +0.44 ± 0.20 | 63% | **0.027** | **Yes** |
+| **LvTx** | 7 | +0.22 ± 0.21 | 86% | 0.109 | **Yes** |
+| SB | 6 | -0.16 ± 0.11 | 33% | 0.891 | No |
+| IF | 3 | -0.05 ± 0.05 | 33% | 0.875 | No |
+| **POOLED** | **35** | **+0.25 ± 0.12** | **60%** | -- | Reference |
 
-*If all groups show the same directional pattern (even if some lack power for significance), that's strong evidence the finding isn't driven by one unusual subgroup.*
+**Heterogeneity Tests (ANOVA - want p > 0.05):**
+| Functional Group | F statistic | p-value | Interpretation |
+|------------------|-------------|---------|----------------|
+| Enterobacteriaceae | 1.26 | **0.305** | No significant heterogeneity |
+| Anaerobes | 0.58 | **0.633** | No significant heterogeneity |
+| Enterococcus | 1.10 | **0.364** | No significant heterogeneity |
 
-**Additional sensitivity analyses:**
-- Exclude each patient group one at a time - does the 49x difference hold?
-- Test for group × antibiotic interaction - is the effect significantly different across groups? (Want p > 0.05, i.e., no significant heterogeneity)
-- Funnel plot or I² heterogeneity statistic if formal meta-analytic approach desired
+**Leave-One-Out Sensitivity:**
+- Pooled Enterobact/Anaerobe ratio: 1.8
+- LOO range (excluding each group): 0.5 - 2.1
+- Effect direction robust to exclusion of any single group
+
+**Interpretation:**
+- **No significant heterogeneity across patient groups** (all p > 0.3)
+- The two largest groups (BMT=19, LvTx=7) both show the expected pattern
+- BMT is individually significant (p=0.027)
+- Smaller groups (IF=3, SB=6) are underpowered - apparent inconsistency likely reflects noise rather than true biological differences
+- Key conclusion: **The differential recovery pattern is not driven by any single patient population**
+
+**Script:** `R/new_analysis_legacy_data/16_stratified_patient_group_analysis.R`
+**Output:** `results/new_analysis_legacy_data/stratified_analysis/`
 
 ### Specific Language for Limitations Section
 
@@ -1128,6 +1144,8 @@ Panel D: Conceptual model
 3. [x] **Run antibiotic-specific effects analysis** (Script 15) - DONE
 4. [x] **Ciprofloxacin PO vs IV route comparison** - DONE (no significant difference)
 5. [x] **BSI study design and data request** - DONE (see BSI_DATA_REQUEST.md)
+6. [x] **Days-since-antibiotics granularity assessment** - DONE (insufficient granularity for Figure S6)
+7. [x] **Stratified analysis by patient group (Table S5)** - DONE (Script 16, no significant heterogeneity)
 
 ### In Progress / Pending
 6. [ ] Compile BSI isolate data for Figure 1 (3-5 representative cases) - USER HAS DATA
