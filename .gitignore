@@ -63,3 +63,6 @@ data/prepared_data.RData
 
 # All data files (large files, may contain PHI)
 data/
+
+# BSI project
+BSI\ project/
